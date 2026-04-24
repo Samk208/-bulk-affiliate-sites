@@ -1,0 +1,55 @@
+{
+  "name": "Bulk Affiliate - Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "command": "echo \"[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] ERROR in workflow: {{ $json.workflow.name }} | Node: {{ $json.execution.lastNodeExecuted }} | Error: {{ $json.execution.error.message }}\" >> /opt/bulk-affiliate/logs/errors.log"
+      },
+      "id": "log-error",
+      "name": "Log Error to File",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [440, 300],
+      "notes": "Append error details to persistent log file"
+    },
+    {
+      "parameters": {
+        "command": "cd /opt/bulk-affiliate && python3 -c \"\nimport smtplib, os\nfrom email.mime.text import MIMEText\n\nsmtp_user = os.environ.get('SMTP_USER', '')\nsmtp_pass = os.environ.get('SMTP_PASS', '')\nnotify = os.environ.get('NOTIFY_EMAIL', 'skonneh2020@gmail.com')\n\nif not smtp_user or not smtp_pass:\n    print('SMTP not configured, skipping email')\n    exit(0)\n\nmsg = MIMEText('Workflow: {{ $json.workflow.name }}\\nNode: {{ $json.execution.lastNodeExecuted }}\\nError: {{ $json.execution.error.message }}\\n\\nCheck /opt/bulk-affiliate/logs/errors.log for details.')\nmsg['Subject'] = '[ALERT] Bulk Affiliate Pipeline Error'\nmsg['From'] = smtp_user\nmsg['To'] = notify\n\ntry:\n    s = smtplib.SMTP_SSL('smtp.gmail.com', 465)\n    s.login(smtp_user, smtp_pass)\n    s.sendmail(smtp_user, [notify], msg.as_string())\n    s.quit()\n    print('Error notification sent')\nexcept Exception as e:\n    print(f'Email failed: {e}')\n\" 2>&1"
+      },
+      "id": "send-email-alert",
+      "name": "Send Email Alert",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [660, 300],
+      "notes": "Send email notification about the pipeline failure. Uses SMTP env vars from .env.cowork"
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [{ "node": "Log Error to File", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log Error to File": {
+      "main": [
+        [{ "node": "Send Email Alert", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": [
+    { "name": "bulk-affiliate" },
+    { "name": "error-handler" }
+  ]
+}

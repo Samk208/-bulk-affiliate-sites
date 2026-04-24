@@ -1,0 +1,205 @@
+[
+  {
+    "niche": "dog-comfort",
+    "keyword": "dog grooming guide complete",
+    "slug": "dog-grooming-skin-care-guide",
+    "cluster": "Cluster 6: Grooming",
+    "unique_angle": "Breed-specific grooming frequency charts, coat type decision tree, home vs. professional threshold guide, and common grooming mistakes that cause skin issues",
+    "gaps": [
+      "Most guides don't distinguish grooming needs by coat type (double vs. single vs. wire vs. curly)",
+      "No guidance on when home grooming vs. professional grooming is the right choice",
+      "Skin condition signs that appear during grooming (early cancer, hot spots, parasites) are never covered",
+      "Grooming anxiety and how to desensitize dogs to specific tools is missing from most guides"
+    ],
+    "key_facts": [
+      {"fact": "Matting can cause skin infections, restrict blood flow, and hide parasites — even in dogs groomed monthly", "source": "AKC"},
+      {"fact": "Double-coated breeds should never be shaved — it can permanently damage the coat texture and affect thermoregulation", "source": "AKC Expert Advice"},
+      {"fact": "Ear infections are the #2 reason for vet visits in dogs; moisture in the ear canal from improper drying after bathing is a primary cause", "source": "VCA Animal Hospitals"},
+      {"fact": "Dogs should have nails trimmed when you can hear clicking on hard floors — most need trimming every 3-6 weeks", "source": "ASPCA"}
+    ],
+    "faq_questions": [
+      "How often should I bathe my dog?",
+      "Should you shave a double-coated dog in summer?",
+      "How do I groom a dog that hates being groomed?",
+      "What's the difference between a slicker brush and a deshedding tool?",
+      "When should I see a professional groomer vs. groom at home?"
+    ]
+  },
+  {
+    "niche": "dog-comfort",
+    "keyword": "best dog bed buying guide",
+    "slug": "dog-bed-buying-guide",
+    "cluster": "Cluster 1: Dog Beds",
+    "unique_angle": "Size calculation formula (not just 'measure your dog'), material comparison by health condition, and the hidden durability factors brands don't advertise",
+    "gaps": [
+      "No articles give an actual formula for calculating correct bed size — they just say 'measure your dog'",
+      "Material comparison by health condition (orthopedic foam vs. cooling gel vs. raised cot) is missing",
+      "Durability factors like zipper quality, foam density rating, and washability of inner liner are never compared",
+      "No guidance on beds for multi-dog households where size and territory matter"
+    ],
+    "key_facts": [
+      {"fact": "Memory foam should be minimum 3-4 inches thick to prevent 'bottoming out' to the hard floor beneath for dogs over 30 lbs", "source": "Veterinary rehabilitation specialists"},
+      {"fact": "Orthopedic dog beds are recommended for dogs with arthritis, hip dysplasia, or any joint condition — the joint pressure relief during 12-16 hours of sleep is significant", "source": "VCA Animal Hospitals"},
+      {"fact": "Dogs sleep 12-14 hours per day on average (puppies and seniors up to 18-20 hours)", "source": "AKC"},
+      {"fact": "Elevated cot-style beds keep dogs 4-8 inches off cold or hot floors, which matters significantly for temperature regulation in short-coated breeds", "source": "PetMD"}
+    ],
+    "faq_questions": [
+      "What size dog bed do I need?",
+      "Is memory foam or orthopedic foam better for dogs?",
+      "How often should I replace my dog's bed?",
+      "Are elevated dog beds better than floor beds?",
+      "What's the best dog bed for a dog who chews everything?"
+    ]
+  },
+  {
+    "niche": "camping-gear",
+    "keyword": "best sleeping pad for camping",
+    "slug": "best-sleeping-pad-for-camping",
+    "cluster": "Cluster 1: Sleep Systems",
+    "unique_angle": "R-value explained properly (most guides don't explain it's cumulative), the air vs. foam vs. self-inflating decision tree by trip type, and the durability vs. weight trade-off chart",
+    "gaps": [
+      "R-value is mentioned but never properly explained — most people don't know it's cumulative and you can stack pads",
+      "No decision tree for choosing type (air vs. self-inflating vs. closed-cell foam) based on trip conditions",
+      "Weight vs. durability vs. cost trade-offs aren't visualized clearly",
+      "Repair kit and field-repair techniques for punctured air pads are never covered"
+    ],
+    "key_facts": [
+      {"fact": "R-value is cumulative — stacking a 2.0 foam pad under a 3.5 air pad gives you 5.5 total, useful for winter camping", "source": "REI"},
+      {"fact": "You lose more body heat to conduction (contact with cold ground) than to convection (cold air) — this is why a sleeping pad matters more than many think", "source": "Wilderness Medical Associates"},
+      {"fact": "For 3-season camping in the US, a minimum R-value of 2 is recommended; winter camping requires R-4 or higher", "source": "REI Expert Advice"}
+    ],
+    "faq_questions": [
+      "What R-value do I need for my sleeping pad?",
+      "Is an air pad or foam pad better for backpacking?",
+      "Can I use a sleeping pad for both camping and backpacking?",
+      "How do I repair a punctured air sleeping pad?",
+      "What's the difference between a self-inflating and an air sleeping pad?"
+    ]
+  },
+  {
+    "niche": "camping-gear",
+    "keyword": "best camping cooler guide",
+    "slug": "best-camping-cooler-guide",
+    "cluster": "Cluster 2: Coolers",
+    "unique_angle": "Ice retention science (pre-chilling, block vs. cubed, packing technique) that triples effective cooler life regardless of brand, plus the roto-molded vs. standard cooler decision",
+    "gaps": [
+      "Pre-chilling the cooler is almost never mentioned but can double ice retention",
+      "Block ice vs. cubed ice retention difference (30-50% more life with block) is consistently missed",
+      "No one explains the packing technique (food at top, ice at bottom is wrong for long trips)",
+      "Cooler size calculation for multi-day trips with specific food amounts is never provided"
+    ],
+    "key_facts": [
+      {"fact": "Roto-molded coolers use 2-3 inches of polyurethane foam insulation vs. 1-1.5 inches in standard coolers, roughly doubling ice retention at 3-5x the price", "source": "Yeti, RTIC manufacturer specs"},
+      {"fact": "Pre-chilling a cooler for 24 hours before a trip can add 1-2 days of ice retention — the cooler walls absorb heat otherwise", "source": "Outdoor Life"},
+      {"fact": "Block ice melts 2-3x slower than equivalent weight in cubed ice due to reduced surface area", "source": "Cooler manufacturers"},
+      {"fact": "The 2:1 ice-to-food ratio is the standard recommendation for maximum ice retention in any cooler", "source": "REI"}
+    ],
+    "faq_questions": [
+      "How long does ice last in a camping cooler?",
+      "Is a Yeti cooler worth the price?",
+      "What size cooler do I need for camping?",
+      "How do I keep ice longer in my cooler?",
+      "What's better — block ice or cubed ice for coolers?"
+    ]
+  },
+  {
+    "niche": "home-coffee",
+    "keyword": "best drip coffee maker guide",
+    "slug": "best-drip-coffee-maker-guide",
+    "cluster": "Cluster 1: Drip Coffee",
+    "unique_angle": "SCA (Specialty Coffee Association) brew temperature and water volume standards that most home machines fail to meet, and why SCAA-certified machines taste different",
+    "gaps": [
+      "SCA certification requirements (brew temperature 195-205°F, proper saturation, 6-minute brew time) are never explained to consumers",
+      "Water quality's impact on coffee taste is underemphasized — hard water ruins even the best machine",
+      "Bloom phase (pre-infusion) and why cheaper machines skip it is rarely explained",
+      "Thermal carafe vs. hotplate long-term taste comparison (hotplate burns coffee in 20-30 min) is not quantified"
+    ],
+    "key_facts": [
+      {"fact": "The SCA (Specialty Coffee Association) certifies coffee makers that brew at 197.6°F (92°C) and maintain optimal brew time — only ~25 home brewers have earned this certification", "source": "Specialty Coffee Association"},
+      {"fact": "A hotplate set to 'warm' exposes coffee to 140°F+ heat, which begins breaking down flavor compounds within 20-30 minutes of brewing", "source": "SCA"},
+      {"fact": "Water should be 98% water and 2% minerals — distilled water produces flat-tasting coffee; very hard water (>250 ppm) creates bitter, chalky coffee", "source": "SCA Water Quality Standards"}
+    ],
+    "faq_questions": [
+      "What makes a coffee maker SCA-certified?",
+      "How hot should a drip coffee maker brew?",
+      "Is a thermal carafe better than a glass carafe?",
+      "How often should I clean my coffee maker?",
+      "What's the best drip coffee maker under $100?"
+    ]
+  },
+  {
+    "niche": "korean-skincare",
+    "keyword": "Korean skincare routine guide complete",
+    "slug": "korean-skincare-routine-guide",
+    "cluster": "Cluster 8: Routine Guide",
+    "unique_angle": "Skin type layering order logic (why lightweight before heavy), pH science behind Korean cleansers, and the 10-step myth vs. the actual minimum effective routine",
+    "gaps": [
+      "The '10-step routine' is presented as mandatory when most dermatologists recommend 3-5 steps for consistent results",
+      "pH science behind double cleansing and why it matters for the skin barrier is never explained properly",
+      "Product layering order logic (thinnest to thickest) and why it matters is rarely explained with actual skin science",
+      "Korean skincare for non-Asian skin types (particularly dry climates and dark skin tones) is almost never addressed"
+    ],
+    "key_facts": [
+      {"fact": "Healthy skin has a pH of 4.5-5.5. Many Western cleansers have a pH of 8-9, disrupting the acid mantle. Korean cleansers typically target pH 5.5-6.5", "source": "Journal of Dermatological Science"},
+      {"fact": "The Korean beauty market was valued at $14.4 billion in 2023 and is projected to grow at 9.4% CAGR through 2028", "source": "Grand View Research"},
+      {"fact": "Double cleansing originated from Korean beauty philosophy — oil first to dissolve sebum and sunscreen, then water-based to clean the skin surface", "source": "Korean Dermatology Association"}
+    ],
+    "faq_questions": [
+      "Do you need to do all 10 steps of Korean skincare?",
+      "What order do you layer Korean skincare products?",
+      "Is Korean skincare good for oily skin?",
+      "What's the difference between Korean skincare and Western skincare?",
+      "Can beginners start Korean skincare?"
+    ]
+  },
+  {
+    "niche": "oral-care",
+    "keyword": "electric toothbrush complete buying guide",
+    "slug": "best-electric-toothbrush-guide",
+    "cluster": "Cluster 1: Electric Toothbrushes",
+    "unique_angle": "Oscillating vs. sonic vs. ultrasonic head mechanics explained, ADA seal meaning and what it requires, and why brush head replacement frequency matters more than brush model",
+    "gaps": [
+      "The difference between oscillating-rotating (Oral-B) and sonic (Philips Sonicare) technology is never clearly explained with plaque removal data",
+      "ADA seal requirements (must remove more plaque than manual brushing, safe for enamel) are never explained — consumers assume it just means 'good'",
+      "Most articles recommend expensive models but never mention that after 3 months the brush head matters more than the handle",
+      "No guidance on electric toothbrushes for people with braces, sensitive gums, or dental implants"
+    ],
+    "key_facts": [
+      {"fact": "Oscillating-rotating electric toothbrushes remove 21% more plaque than manual brushing, per Cochrane Review meta-analysis of 56 studies", "source": "Cochrane Review 2014 (updated evidence)"},
+      {"fact": "The ADA Seal of Acceptance requires manufacturers to prove the product removes more plaque than a manual brush and doesn't damage enamel, gums, or restorations", "source": "American Dental Association"},
+      {"fact": "Dental professionals recommend replacing brush heads every 3 months — a worn brush head can remove 30% less plaque", "source": "American Dental Association"}
+    ],
+    "faq_questions": [
+      "Is an electric toothbrush really better than manual?",
+      "What's the difference between Oral-B and Philips Sonicare?",
+      "How often should I replace my electric toothbrush head?",
+      "Are electric toothbrushes safe for sensitive teeth?",
+      "What does the ADA seal mean on a toothbrush?"
+    ]
+  },
+  {
+    "niche": "home-office",
+    "keyword": "best standing desk complete guide",
+    "slug": "best-standing-desk-guide",
+    "cluster": "Cluster 1: Standing Desks",
+    "unique_angle": "The sit-stand ratio research (50/50 is wrong — evidence supports 1:1 to 1:2 stand:sit), anti-fatigue mat necessity, and ergonomic monitor height formula",
+    "gaps": [
+      "Most articles say 'alternate sitting and standing' without giving the actual evidence-based ratio (1 hour standing per 2 hours sitting, not 50/50)",
+      "Anti-fatigue mat necessity and why standing without one can cause more harm than sitting is never addressed",
+      "Monitor height for standing position formula is missing (top of screen at or just below eye level, 20-28 inches from face)",
+      "Desk stability ratings (wobble at full height) are never quantified despite being a major quality differentiator"
+    ],
+    "key_facts": [
+      {"fact": "A 2018 Cochrane Review found that sit-stand desks reduced sitting time by 1.2 hours per day, but benefits plateaued without behavioral coaching", "source": "Cochrane Review 2018"},
+      {"fact": "Standing without an anti-fatigue mat increases lower back and leg discomfort faster than sitting — fatigue-related pain begins in 45-60 min of uninterrupted standing on hard floors", "source": "Cornell University Human Factors and Ergonomics Research Group"},
+      {"fact": "The recommended standing desk height formula: standing desk height = elbow height when arms hang naturally at sides (typically 28-48 inches for most adults)", "source": "OSHA Ergonomic Guidelines"}
+    ],
+    "faq_questions": [
+      "How long should you stand at a standing desk?",
+      "Do you need an anti-fatigue mat with a standing desk?",
+      "What height should my standing desk be?",
+      "Are standing desks actually better for you?",
+      "What's the difference between a cheap and expensive standing desk?"
+    ]
+  }
+]

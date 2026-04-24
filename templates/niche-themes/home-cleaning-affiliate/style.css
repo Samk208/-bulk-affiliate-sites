@@ -1,0 +1,284 @@
+/*
+Theme Name: Home Cleaning Affiliate
+Theme URI: https://example.com
+Description: Custom affiliate theme for Home Cleaning content. GeneratePress child.
+Author: Lisa Chen
+Template: generatepress
+Version: 1.0
+License: GNU General Public License v2 or later
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap');
+
+/* ===== DESIGN TOKENS (Home Cleaning) ===== */
+:root {
+    --aff-primary: #00796b;
+    --aff-primary-lt: #26a69a;
+    --aff-dark: #004d40;
+    --aff-text: #334155;
+    --aff-text-muted: #64748b;
+    --aff-bg: #ffffff;
+    --aff-bg-alt: #f8fafc;
+    --aff-border: #e2e8f0;
+    --aff-success: #10b981;
+    --aff-warning: #f59e0b;
+    --aff-cta: #ff7043;
+    --aff-cta-hover: #e64a19;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: 'Source Sans 3', 'Segoe UI', sans-serif;
+}
+
+
+/* ==========================================================================
+   AFFILIATE SITES — GeneratePress Child Theme (Golden Template)
+   Clone this to all 14 niche sites. Customize colors per niche if desired.
+   ========================================================================== */
+
+/* ===== DESIGN TOKENS ===== */
+
+
+/* ===== GLOBAL ===== */
+body {
+    color: var(--aff-text);
+    font-family: var(--font-body);
+    line-height: 1.7;
+}
+
+/* ===== HEADINGS (all use --font-heading for niche differentiation) ===== */
+h1, h2, h3, h4, h5, h6,
+.site-title,
+.entry-title {
+    font-family: var(--font-heading);
+}
+
+/* ===== ARTICLE CONTENT ===== */
+.inside-article {
+    padding: 30px;
+}
+
+.entry-content h2 {
+    color: var(--aff-dark);
+    font-family: var(--font-heading);
+    margin-top: 2em;
+    padding-bottom: 0.3em;
+    border-bottom: 2px solid var(--aff-border);
+}
+
+.entry-content h3 {
+    color: var(--aff-primary);
+    font-family: var(--font-heading);
+    margin-top: 1.5em;
+}
+
+/* ===== SITE BRANDING ===== */
+.site-title {
+    color: var(--aff-dark);
+}
+
+.site-title a {
+    color: var(--aff-dark);
+    text-decoration: none;
+}
+
+.site-title a:hover {
+    color: var(--aff-primary);
+}
+
+/* ===== SIDEBAR HEADINGS ===== */
+.widget-area .widget-title {
+    font-family: var(--font-heading);
+    color: var(--aff-dark);
+    font-size: 1.15em;
+    border-bottom: 2px solid var(--aff-primary);
+    padding-bottom: 0.4em;
+    margin-bottom: 0.8em;
+}
+
+/* ===== LINKS (niche primary color) ===== */
+.entry-content a {
+    color: var(--aff-primary);
+}
+
+.entry-content a:hover {
+    color: var(--aff-primary-lt);
+}
+
+/* ===== CTA BUTTONS ===== */
+.wp-block-button__link,
+a.button,
+.aff-cta-button {
+    background: var(--aff-cta);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 24px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.wp-block-button__link:hover,
+a.button:hover,
+.aff-cta-button:hover {
+    background: var(--aff-cta-hover);
+    color: #fff;
+}
+
+/* ===== AFFILIATE PRODUCT BOXES (from wp-ai-affiliate plugin) ===== */
+.aiaff-product-box {
+    border: 1px solid var(--aff-border);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 1.5em 0;
+    background: var(--aff-bg-alt);
+}
+
+.aiaff-product-box:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.aiaff-product-box .aiaff-cta {
+    background: #ff9900;
+    color: #111;
+    font-weight: 700;
+    border-radius: 4px;
+    padding: 10px 20px;
+}
+
+/* ===== AFFILIATE DISCLOSURE (top of posts) ===== */
+.affiliate-disclosure {
+    background: #fef3c7;
+    border-left: 4px solid var(--aff-warning);
+    padding: 12px 16px;
+    margin-bottom: 1.5em;
+    font-size: 0.85em;
+    color: #92400e;
+    border-radius: 0 4px 4px 0;
+}
+
+/* ===== TABLE OF CONTENTS (Rank Math) ===== */
+.wp-block-rank-math-toc-block {
+    background: var(--aff-bg-alt);
+    border: 1px solid var(--aff-border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 2em;
+}
+
+.wp-block-rank-math-toc-block h2 {
+    font-size: 1.1em;
+    margin-top: 0;
+    border-bottom: none;
+}
+
+/* ===== COMPARISON TABLES ===== */
+.wp-block-table table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.wp-block-table th {
+    background: var(--aff-primary);
+    color: #fff;
+    padding: 12px 16px;
+    text-align: left;
+}
+
+.wp-block-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--aff-border);
+}
+
+.wp-block-table tr:nth-child(even) {
+    background: var(--aff-bg-alt);
+}
+
+/* ===== PROS/CONS BOXES ===== */
+.pros-cons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1em;
+    margin: 1.5em 0;
+}
+
+.pros-box, .cons-box {
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.pros-box {
+    background: #ecfdf5;
+    border: 1px solid #6ee7b7;
+}
+
+.cons-box {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+}
+
+@media (max-width: 767px) {
+    .pros-cons {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===== SIDEBAR ===== */
+.widget-area .widget {
+    margin-bottom: 2em;
+    padding: 20px;
+    background: var(--aff-bg-alt);
+    border-radius: 8px;
+    border: 1px solid var(--aff-border);
+}
+
+/* ===== FOOTER ===== */
+.site-footer {
+    background: var(--aff-dark);
+    color: #94a3b8;
+}
+
+.site-footer a {
+    color: #cbd5e1;
+}
+
+.site-footer a:hover {
+    color: #fff;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 767px) {
+    .inside-article {
+        padding: 15px;
+    }
+
+    .entry-content h2 {
+        font-size: 1.4em;
+    }
+}
+
+
+/* === Niche-specific table styling (Home Cleaning) === */
+.wp-block-table th {
+    background: #2e7d32;
+    color: #ffffff;
+}
+
+.wp-block-table tr:nth-child(even) {
+    background: #e8f5e9;
+}
+
+
+/* === Niche-specific quote styling === */
+blockquote {
+    background: #f1f8e9;
+    border-left: 4px solid #aed581;
+    padding: 16px 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+    font-style: italic;
+}
+
+blockquote footer {
+    color: #558b2f;
+}
+

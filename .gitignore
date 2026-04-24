@@ -1,0 +1,74 @@
+# ==============================================================
+# Bulk Affiliate Sites - repo hygiene policy
+# Only core runtime files are tracked. Everything else stays local.
+# ==============================================================
+
+# ---- Secrets & credentials (NEVER commit) ----
+.env
+.env.*
+*.env
+.env.wp
+.env.cowork
+
+# ---- Generated content (stays local; lives on VPS / LocalWP) ----
+/outputs/
+/import-pillars.php
+
+# ---- Research & planning (local-only per project policy) ----
+/research/
+/docs/
+/memory/
+/some notes/
+/Prompts/
+
+# ---- Session handovers & planning notes (local-only) ----
+/HANDOVER-*.md
+/HANDOFF.md
+/SESSION-LOG.md
+/START-HERE.md
+/SKILL.md
+/PILLAR-SELECTION.md
+/GENERATION-PLAN.md
+/PUBLISHING-VELOCITY-PLAN.md
+/SITE-LAUNCH-PLAN.md
+/ANTI-NETWORK-DETECTION.md
+/KEYWORD-RESEARCH-OVERHAUL.md
+/EDITOR-BRIEF.md
+/ENTITY-RESEARCH-BRIEF-*.md
+/ZW-Implementation-Plan.html
+/compass_artifact_*.md
+/generatepress info.md
+/mcp-skill research.md
+
+# ---- Runtime state (machine-specific) ----
+/generation-state.json
+/scripts/progress.json
+/outputs/**/progress.json
+/outputs/**/cowork-queue.json
+
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# ---- Editor / IDE / harness ----
+.vscode/
+.idea/
+.qoder/
+.claude/
+
+# ---- OS ----
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ---- Archives / binaries ----
+*.zip
+*.tar.gz
+*.rar
+*.7z

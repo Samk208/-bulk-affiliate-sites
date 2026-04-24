@@ -1,0 +1,17 @@
+# domains.txt — One domain per line
+# Used by: mass-clone.sh, batch-indexing.sh
+# Lines starting with # are skipped
+#
+# Replace these with your actual domains (expired or EMD)
+# Format: just the domain, no https:// or trailing slash
+
+bestdogbeds.com
+coffeemakerguide.com
+mensgroomhub.com
+oralcarepicks.com
+catcarecentral.com
+homecleaningpro.com
+healthycookinglab.com
+homeofficesetup.com
+waterqualityhub.com
+campinggearguide.com
