@@ -87,7 +87,7 @@ def run_pipeline_sync(niche: str | None, limit: int | None, steps: list[str] | N
     _running_jobs[job_id] = {"status": "running", "started": datetime.now().isoformat()}
 
     results = {"job_id": job_id, "started": datetime.now().isoformat(), "steps": []}
-    all_steps = steps or ["research", "generate", "cleanup", "enhance", "qa"]
+    all_steps = steps or ["research", "serp_real", "generate", "cleanup", "enhance", "qa"]
 
     # Determine niche
     if niche:
@@ -123,13 +123,21 @@ def run_pipeline_sync(niche: str | None, limit: int | None, steps: list[str] | N
     results["niche"] = target_niche
     limit_args = ["--limit", str(limit)] if limit else []
 
-    # Step 1: SERP Research
+    # Step 1: Perplexity SERP Research (fact-grounding, content gaps)
     if "research" in all_steps:
         res = run_command(
             [PYTHON, str(SCRIPTS_DIR / "serp_researcher.py"), target_niche] + limit_args,
             timeout=1800,
         )
         results["steps"].append({"step": "research", **res})
+
+    # Step 1b: DataForSEO real SERP (live Google rankings, PAA, SERP features)
+    if "serp_real" in all_steps:
+        res = run_command(
+            [PYTHON, str(SCRIPTS_DIR / "serp_dataforseo.py"), target_niche] + limit_args,
+            timeout=1800,
+        )
+        results["steps"].append({"step": "serp_real", **res})
 
     # Step 2: Article Generation
     if "generate" in all_steps:

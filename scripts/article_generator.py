@@ -187,6 +187,75 @@ async def generate_article(
         }
 
 
+def _build_serp_context(dfs_data: dict, perplexity_research: str, keyword: str) -> str:
+    """Merge DataForSEO real SERP snapshot with Perplexity research into one prompt block.
+
+    DataForSEO gives real competitor URLs, snippets, and PAA questions.
+    Perplexity gives synthesised facts, stats, and content gaps.
+    Together they give Kimi K2.5 everything it needs to outrank the top 10.
+    """
+    parts = []
+
+    # --- DataForSEO block (real SERP) ---
+    if dfs_data and dfs_data.get("organic"):
+        organic = dfs_data["organic"]
+        features = dfs_data.get("serp_features", [])
+        paa = dfs_data.get("paa_questions", [])
+        total = dfs_data.get("total_results", 0)
+
+        lines = [f'REAL SERP DATA (live Google results for: "{keyword}")']
+
+        if total:
+            lines.append(f"Total results: {total:,}")
+
+        if features:
+            feature_labels = {
+                "featured_snippet": "Featured Snippet (★ CLAIM THIS — answer the query in first 40-60 words)",
+                "people_also_ask":  "People Also Ask (cover ALL PAA questions below)",
+                "knowledge_graph":  "Knowledge Graph (strong entity signals required)",
+                "local_pack":       "Local Pack",
+                "video_carousel":   "Video Carousel",
+                "image_pack":       "Image Pack",
+                "top_stories":      "Top Stories (news freshness factor)",
+            }
+            lines.append("\nSERP FEATURES PRESENT:")
+            for f in features:
+                lines.append(f"  - {feature_labels.get(f, f)}")
+
+        lines.append(f"\nTOP {len(organic)} RANKING PAGES (beat these):")
+        for r in organic:
+            lines.append(f"  {r['position']}. {r['title']}")
+            lines.append(f"     URL: {r['url']}")
+            if r.get("snippet"):
+                lines.append(f"     Snippet: {r['snippet'][:180]}")
+
+        if paa:
+            lines.append("\nPEOPLE ALSO ASK (cover every one of these — they become H3 subheadings):")
+            for q in paa:
+                lines.append(f"  - {q}")
+
+        lines.append("\nCOMPETITOR STRATEGY:")
+        lines.append("  - Study what the top 3 URLs cover (their snippets reveal their structure).")
+        lines.append("  - Your article MUST cover everything they cover, PLUS fill the gaps.")
+        lines.append("  - The article that answers MORE questions = the article that ranks.")
+        if "featured_snippet" in features:
+            lines.append("  - A Featured Snippet is live — write a 40-60 word direct answer RIGHT AFTER your first H2.")
+
+        parts.append("\n".join(lines))
+
+    # --- Perplexity research block ---
+    if perplexity_research:
+        parts.append(
+            "PERPLEXITY SERP RESEARCH (synthesized facts, data points, content gaps):\n"
+            + perplexity_research
+        )
+
+    if not parts:
+        return ""
+
+    return "\n\n---\n\n".join(parts)
+
+
 async def run_niche(niche_slug: str, limit: int | None = None):
     """Generate all informational articles for a niche."""
     niche_dir = get_niche_dir(niche_slug)
@@ -230,14 +299,21 @@ async def run_niche(niche_slug: str, limit: int | None = None):
 
     product_context = load_product_context(niche_dir)
 
-    # Load SERP research (from serp_researcher.py)
+    # Load SERP research (from serp_researcher.py — Perplexity Sonar)
     serp_path = niche_dir / "serp-research.json"
     serp_research = {}
     if serp_path.exists():
         serp_research = json.loads(serp_path.read_text(encoding="utf-8"))
-        print(f"  SERP research loaded: {len(serp_research)} topics")
+        print(f"  SERP research loaded: {len(serp_research)} topics (Perplexity)")
     else:
         print(f"  NOTE: No serp-research.json -- run serp_researcher.py for better quality")
+
+    # Load DataForSEO real SERP data (from serp_dataforseo.py)
+    dfs_path = niche_dir / "serp-dataforseo.json"
+    serp_dataforseo = {}
+    if dfs_path.exists():
+        serp_dataforseo = json.loads(dfs_path.read_text(encoding="utf-8"))
+        print(f"  DataForSEO SERP loaded: {len(serp_dataforseo)} keywords")
 
     progress = load_progress(articles_dir)
     semaphore = asyncio.Semaphore(MAX_CONCURRENT)
@@ -255,8 +331,12 @@ async def run_niche(niche_slug: str, limit: int | None = None):
     tasks = []
     for entry in entries:
         related_links = link_map.get(entry["slug"], [])
-        # Get SERP research for this specific article
-        topic_research = serp_research.get(entry["slug"], {}).get("research", "")
+
+        # Build combined SERP context: DataForSEO real SERP first, then Perplexity research
+        dfs_data = serp_dataforseo.get(entry["slug"], {})
+        perplexity_research = serp_research.get(entry["slug"], {}).get("research", "")
+        topic_research = _build_serp_context(dfs_data, perplexity_research, entry["title"])
+
         tasks.append(
             generate_article(
                 entry=entry,

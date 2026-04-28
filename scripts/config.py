@@ -35,6 +35,12 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 PERPLEXITY_API_KEY = os.environ.get("PERPLEXITY_API_KEY", "")
 PERPLEXITY_BASE_URL = "https://api.perplexity.ai"
 
+# DataForSEO (real SERP data — live organic rankings, PAA, SERP features)
+# Credentials in .env.cowork: DATAFORSEO_LOGIN + DATAFORSEO_PASSWORD
+# Cost: ~$0.003/keyword (live/advanced endpoint)
+DATAFORSEO_LOGIN    = os.environ.get("DATAFORSEO_LOGIN", "")
+DATAFORSEO_PASSWORD = os.environ.get("DATAFORSEO_PASSWORD", "")
+
 PRIMARY_MODEL = "moonshotai/kimi-k2.5"       # All niches
 FALLBACK_MODEL = "claude-sonnet-4-6"          # Only if Kimi fails
 PRIMARY_MAX_TOKENS = 8192                     # Long-form with visuals (Kimi supports 128K)
