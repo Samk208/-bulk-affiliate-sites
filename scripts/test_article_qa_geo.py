@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Tests for the 4 new GEO/citation scorers added to article_qa.py."""
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -196,4 +198,47 @@ class TestQuickAnswerBox(unittest.TestCase):
         result = validate_quick_answer_box("<p>Hello.</p>")
         self.assertIn("has_box", result)
         self.assertIn("bullet_count", result)
+        self.assertIn("issues", result)
+
+
+class TestFaqSchemaCheck(unittest.TestCase):
+
+    def _write_schema(self, data, tmp_dir: str) -> Path:
+        p = Path(tmp_dir) / "test-article.json"
+        p.write_text(json.dumps(data), encoding="utf-8")
+        return p
+
+    def test_faq_in_html_and_schema_passes(self):
+        html = '<h2>Frequently Asked Questions</h2><p>Q: What is it?</p>'
+        with tempfile.TemporaryDirectory() as d:
+            schema_path = self._write_schema(
+                [{"@type": "Article"}, {"@type": "FAQPage", "mainEntity": []}],
+                d,
+            )
+            result = check_faq_schema(html, schema_path)
+        self.assertEqual(result["issues"], [])
+
+    def test_faq_in_html_but_no_faq_schema_warns(self):
+        html = '<h2>Frequently Asked Questions</h2><p>Q: What is it?</p>'
+        with tempfile.TemporaryDirectory() as d:
+            schema_path = self._write_schema([{"@type": "Article"}], d)
+            result = check_faq_schema(html, schema_path)
+        self.assertTrue(any("FAQPage" in i for i in result["issues"]))
+
+    def test_no_faq_section_no_warning(self):
+        html = '<h2>Overview</h2><p>Some content.</p>'
+        with tempfile.TemporaryDirectory() as d:
+            schema_path = self._write_schema([{"@type": "Article"}], d)
+            result = check_faq_schema(html, schema_path)
+        self.assertEqual(result["issues"], [])
+
+    def test_missing_schema_file_handled(self):
+        html = '<h2>FAQ</h2>'
+        result = check_faq_schema(html, Path("/nonexistent/path.json"))
+        self.assertIn("issues", result)
+
+    def test_returns_required_keys(self):
+        result = check_faq_schema("<p>Hello.</p>", Path("/nonexistent.json"))
+        self.assertIn("has_faq_html", result)
+        self.assertIn("has_faq_schema", result)
         self.assertIn("issues", result)

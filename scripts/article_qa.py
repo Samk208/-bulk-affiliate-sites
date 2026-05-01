@@ -416,6 +416,51 @@ def validate_quick_answer_box(html: str) -> dict:
     return {"has_box": True, "bullet_count": bullet_count, "issues": issues}
 
 
+_FAQ_HTML_RE = re.compile(
+    r'<h2[^>]*>.*?(?:FAQ|Frequently Asked Questions?)',
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def check_faq_schema(html: str, schema_path: "Path") -> dict:
+    """Cross-check: if an FAQ section exists in HTML, verify FAQPage schema is in the JSON-LD file.
+
+    AI answer engines use FAQPage schema to identify content eligible for FAQ rich results
+    and AI Overview FAQ citations. An FAQ section without FAQPage schema is invisible to them.
+
+    Returns:
+        {
+          "has_faq_html":    bool,
+          "has_faq_schema":  bool,
+          "issues":          list[str],
+        }
+    """
+    has_faq_html = bool(_FAQ_HTML_RE.search(html))
+    has_faq_schema = False
+    issues: list[str] = []
+
+    if not schema_path.exists():
+        return {"has_faq_html": has_faq_html, "has_faq_schema": False, "issues": issues}
+
+    try:
+        schema_data = json.loads(schema_path.read_text(encoding="utf-8"))
+        schemas = schema_data if isinstance(schema_data, list) else [schema_data]
+        for s in schemas:
+            if s.get("@type") == "FAQPage":
+                has_faq_schema = True
+                break
+    except (json.JSONDecodeError, OSError):
+        return {"has_faq_html": has_faq_html, "has_faq_schema": False, "issues": issues}
+
+    if has_faq_html and not has_faq_schema:
+        issues.append(
+            "FAQ section exists in HTML but schema file has no FAQPage @type — "
+            "add FAQPage JSON-LD to enable AI Overview FAQ citations"
+        )
+
+    return {"has_faq_html": has_faq_html, "has_faq_schema": has_faq_schema, "issues": issues}
+
+
 # -- E-E-A-T regex patterns (from Multi-Agent Engine eeat_validator_agent.py) --
 
 EEAT_PATTERNS = {
@@ -754,6 +799,10 @@ def check_article(html_path: Path, schema_path: Path, niche_slug: str = "") -> d
         for qa_issue in qa_box["issues"]:
             issues.append(f"QUICK ANSWER BOX: {qa_issue}")
 
+    faq_schema = check_faq_schema(html, schema_path)
+    for faq_issue in faq_schema["issues"]:
+        warnings.append(f"FAQ SCHEMA: {faq_issue}")
+
     return {
         "slug": slug,
         "word_count": word_count,
@@ -776,6 +825,7 @@ def check_article(html_path: Path, schema_path: Path, niche_slug: str = "") -> d
         "self_contained": self_contained,
         "stats_attribution": stats_attr,
         "quick_answer_box": qa_box,
+        "faq_schema": faq_schema,
         "issues": issues,
         "warnings": warnings,
     }
