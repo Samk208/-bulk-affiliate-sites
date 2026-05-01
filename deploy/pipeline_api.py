@@ -87,6 +87,19 @@ def run_pipeline_sync(niche: str | None, limit: int | None, steps: list[str] | N
     _running_jobs[job_id] = {"status": "running", "started": datetime.now().isoformat()}
 
     results = {"job_id": job_id, "started": datetime.now().isoformat(), "steps": []}
+    try:
+        _run_pipeline_inner(job_id, niche, limit, steps, results, log_file)
+    except Exception as e:
+        # Always release the lock — a crash must not block future runs forever
+        _running_jobs[job_id] = {"status": "crashed", "error": str(e), "finished": datetime.now().isoformat()}
+        results["error"] = str(e)
+        try:
+            log_file.write_text(json.dumps(results, indent=2))
+        except Exception:
+            pass
+
+
+def _run_pipeline_inner(job_id: str, niche, limit, steps, results, log_file):
     all_steps = steps or ["research", "serp_real", "generate", "cleanup", "enhance", "qa"]
 
     # Determine niche
@@ -207,9 +220,18 @@ def health():
 def trigger_pipeline(req: PipelineRequest, background_tasks: BackgroundTasks):
     """Trigger the article pipeline. Runs in background, returns job ID."""
 
-    # Check if a job is already running
-    for job_id, info in _running_jobs.items():
+    # Check if a job is already running (skip stale "running" entries older than 3h)
+    now = datetime.now()
+    for job_id, info in list(_running_jobs.items()):
         if info.get("status") == "running":
+            started_str = info.get("started", "")
+            try:
+                started = datetime.fromisoformat(started_str)
+                if (now - started).total_seconds() > 10800:  # 3 hours = stale
+                    _running_jobs[job_id] = {"status": "timed_out", "finished": now.isoformat()}
+                    continue
+            except Exception:
+                pass
             return PipelineStatus(
                 status="already_running",
                 job_id=job_id,
