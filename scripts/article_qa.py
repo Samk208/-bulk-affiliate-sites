@@ -226,6 +226,57 @@ def score_algorithmic_authorship(html: str) -> dict:
         "issues": issues,
     }
 
+
+# Dependent openers that kill AI citation when a passage is extracted out of context.
+# GEO/citation research: self-contained passages are cited significantly more often.
+_DEPENDENT_OPENERS = re.compile(
+    r'^\s*(?:This|These|Those|It|They|He|She|As mentioned|As noted|As described|'
+    r'In the above|In this case|In these cases|For this reason|For these reasons)\b',
+    re.IGNORECASE,
+)
+
+
+def score_passage_self_containment(html: str) -> dict:
+    """Flag answer-zone paragraphs that open with dependent pronouns or back-references.
+
+    Answer zones: Quick Answer box <p> tags + first <p> after each <h2>.
+    AI engines extract these passages out of context, so openers like "This helps..."
+    or "As mentioned above..." become meaningless citations.
+
+    Returns:
+        {
+          "dependent_count": int,        # number of flagged openers
+          "issues":          list[str],  # one message per flagged paragraph
+          "density_per_1kw": float,      # flags per 1,000 words in answer zones
+        }
+    """
+    paragraphs: list[str] = []
+
+    qa = _QUICK_ANSWER_RE.search(html)
+    if qa:
+        paragraphs.extend(m.group(1) for m in _P_INSIDE_RE.finditer(qa.group(1)))
+    for m in _FIRST_P_AFTER_H2_RE.finditer(html):
+        paragraphs.append(m.group(1))
+
+    dependent_count = 0
+    issues: list[str] = []
+    total_words = 0
+
+    for p_inner in paragraphs:
+        text = _TAG_RE.sub(" ", p_inner).strip()
+        total_words += len(text.split())
+        if _DEPENDENT_OPENERS.match(text):
+            opener = text.split()[0] if text.split() else ""
+            snippet = " ".join(text.split()[:8])
+            issues.append(
+                f"Dependent opener '{opener}' in answer zone — loses meaning when extracted: '{snippet}...'"
+            )
+            dependent_count += 1
+
+    density = round((dependent_count / (total_words or 1)) * 1000, 2)
+    return {"dependent_count": dependent_count, "issues": issues, "density_per_1kw": density}
+
+
 # -- E-E-A-T regex patterns (from Multi-Agent Engine eeat_validator_agent.py) --
 
 EEAT_PATTERNS = {
@@ -543,6 +594,13 @@ def check_article(html_path: Path, schema_path: Path, niche_slug: str = "") -> d
                 f"({q_rate:.0f}%, target 80%+)"
             )
 
+    self_contained = score_passage_self_containment(html)
+    if self_contained["dependent_count"] > 0:
+        warnings.append(
+            f"SELF-REF OPENERS: {self_contained['dependent_count']} dependent opener(s) in answer zones "
+            f"(e.g. 'This', 'These', 'As mentioned') — AI extracts these out of context"
+        )
+
     return {
         "slug": slug,
         "word_count": word_count,
@@ -562,6 +620,7 @@ def check_article(html_path: Path, schema_path: Path, niche_slug: str = "") -> d
         "declarative": declarative,
         "chunk": chunk,
         "algo_authorship": algo,
+        "self_contained": self_contained,
         "issues": issues,
         "warnings": warnings,
     }
@@ -645,6 +704,10 @@ def run_qa(niche_slug: str):
         print(f"  Hedges:      {sum(hedge_counts)} total in answer zones (avg {avg(hedge_counts):.1f}/article)")
     if long_para_counts:
         print(f"  Long paras:  {sum(long_para_counts)} total >60w in answer zones (avg {avg(long_para_counts):.1f}/article)")
+
+    self_ref_counts = [r["self_contained"]["dependent_count"] for r in results if r.get("self_contained")]
+    if self_ref_counts:
+        print(f"  Self-ref:    {sum(self_ref_counts)} total dependent openers (avg {avg(self_ref_counts):.1f}/article)")
 
     print(f"  VERDICT:     {'PASS' if total_issues == 0 else 'NEEDS FIXES'}")
     print(f"{'-'*40}")
