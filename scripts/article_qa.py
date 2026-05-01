@@ -376,6 +376,46 @@ def score_stats_attribution(html: str) -> dict:
     }
 
 
+_LI_RE = re.compile(r'<li[^>]*>', re.IGNORECASE)
+_P_IN_BOX_RE = re.compile(r'<p[^>]*>', re.IGNORECASE)
+
+
+def validate_quick_answer_box(html: str) -> dict:
+    """Check that the Quick Answer box (purple) uses bullet list format, not paragraphs.
+
+    CLAUDE.md rule: Quick Answer box must have 3-4 <li> items. Paragraph text in
+    the box defeats its purpose — AI engines cite structured bullet answers, not
+    flowing prose.
+
+    Returns:
+        {
+          "has_box":      bool,
+          "bullet_count": int,
+          "issues":       list[str],
+        }
+    """
+    qa_match = _QUICK_ANSWER_RE.search(html)
+    if not qa_match:
+        return {"has_box": False, "bullet_count": 0, "issues": []}
+
+    box_html = qa_match.group(0)
+    bullet_count = len(_LI_RE.findall(box_html))
+    para_count = len(_P_IN_BOX_RE.findall(box_html))
+    issues: list[str] = []
+
+    if para_count > 0 and bullet_count == 0:
+        issues.append(
+            "Quick Answer box uses <p> instead of <li> — replace with 3-4 bullet points "
+            "for AI citation eligibility"
+        )
+    elif bullet_count < 3:
+        issues.append(
+            f"Quick Answer box has only {bullet_count} <li> item(s) — target is 3-4 bullets"
+        )
+
+    return {"has_box": True, "bullet_count": bullet_count, "issues": issues}
+
+
 # -- E-E-A-T regex patterns (from Multi-Agent Engine eeat_validator_agent.py) --
 
 EEAT_PATTERNS = {
@@ -707,6 +747,13 @@ def check_article(html_path: Path, schema_path: Path, niche_slug: str = "") -> d
             f"lack a source — attributed stats are cited by AI more often"
         )
 
+    qa_box = validate_quick_answer_box(html)
+    if not qa_box["has_box"]:
+        issues.append("MISSING QUICK ANSWER BOX — add purple bullet-list box at top for AI citation")
+    elif qa_box["issues"]:
+        for qa_issue in qa_box["issues"]:
+            issues.append(f"QUICK ANSWER BOX: {qa_issue}")
+
     return {
         "slug": slug,
         "word_count": word_count,
@@ -728,6 +775,7 @@ def check_article(html_path: Path, schema_path: Path, niche_slug: str = "") -> d
         "algo_authorship": algo,
         "self_contained": self_contained,
         "stats_attribution": stats_attr,
+        "quick_answer_box": qa_box,
         "issues": issues,
         "warnings": warnings,
     }

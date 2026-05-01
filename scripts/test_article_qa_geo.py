@@ -139,3 +139,59 @@ class TestStatsAttribution(unittest.TestCase):
         result = score_stats_attribution("<p>Dogs are great pets.</p>")
         self.assertEqual(result["attribution_rate"], 1.0)
         self.assertEqual(result["total_stats"], 0)
+
+
+class TestQuickAnswerBox(unittest.TestCase):
+
+    PURPLE_BOX_WITH_BULLETS = """
+    <div style="background:#f3e5f5;border-left:4px solid #9c27b0;padding:16px">
+        <strong>Quick Answer</strong>
+        <ul>
+            <li>Use memory foam for joint support</li>
+            <li>Choose waterproof covers for easy cleaning</li>
+            <li>Size up one level from your dog's weight class</li>
+        </ul>
+    </div>
+    """
+
+    PURPLE_BOX_WITH_PARAGRAPH = """
+    <div style="background:#f3e5f5;border-left:4px solid #9c27b0;padding:16px">
+        <strong>Quick Answer</strong>
+        <p>You should use memory foam for joint support and choose waterproof covers for easy cleaning.</p>
+    </div>
+    """
+
+    PURPLE_BOX_TOO_FEW_BULLETS = """
+    <div style="background:#f3e5f5;border-left:4px solid #9c27b0;padding:16px">
+        <strong>Quick Answer</strong>
+        <ul>
+            <li>Use memory foam for joint support</li>
+            <li>Choose waterproof covers</li>
+        </ul>
+    </div>
+    """
+
+    def test_valid_box_passes(self):
+        result = validate_quick_answer_box(self.PURPLE_BOX_WITH_BULLETS)
+        self.assertTrue(result["has_box"])
+        self.assertEqual(result["issues"], [])
+
+    def test_paragraph_instead_of_bullets_flagged(self):
+        result = validate_quick_answer_box(self.PURPLE_BOX_WITH_PARAGRAPH)
+        self.assertTrue(result["has_box"])
+        self.assertTrue(any("paragraph" in i.lower() or "<p>" in i for i in result["issues"]))
+
+    def test_too_few_bullets_flagged(self):
+        result = validate_quick_answer_box(self.PURPLE_BOX_TOO_FEW_BULLETS)
+        self.assertTrue(result["has_box"])
+        self.assertTrue(any("bullet" in i.lower() or "li" in i.lower() for i in result["issues"]))
+
+    def test_no_box_returns_has_box_false(self):
+        result = validate_quick_answer_box("<p>Regular content.</p>")
+        self.assertFalse(result["has_box"])
+
+    def test_returns_required_keys(self):
+        result = validate_quick_answer_box("<p>Hello.</p>")
+        self.assertIn("has_box", result)
+        self.assertIn("bullet_count", result)
+        self.assertIn("issues", result)
