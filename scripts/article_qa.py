@@ -283,7 +283,8 @@ def score_passage_self_containment(html: str) -> dict:
 # non-word characters and cannot satisfy a word boundary anchor.
 _ATTRIBUTION_PHRASES = re.compile(
     r'(?:\b(?:according to|per the|per a|from the|from a|data from|'
-    r'study by|published in|research by|research from|shows that|found that|'
+    r'study by|published in|research by|research from|'
+    r'shows that|show that|studies show|research shows|data shows|found that|'
     r'reported by|as reported|cited by)\b'
     r'|source:|\(\d{4}\))',
     re.IGNORECASE,

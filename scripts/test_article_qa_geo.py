@@ -97,10 +97,10 @@ class TestStatsAttribution(unittest.TestCase):
         <p>Per the WHO, 60% of adults have gum disease.</p>
         """
         result = score_stats_attribution(html)
-        # 2 attributed (90%, 60%), 1 unattributed (45%)
+        # All 3 are attributed: "according to", "studies show", "per the"
         self.assertEqual(result["total_stats"], 3)
-        self.assertEqual(result["attributed_count"], 2)
-        self.assertEqual(result["unattributed_count"], 1)
+        self.assertEqual(result["attributed_count"], 3)
+        self.assertEqual(result["unattributed_count"], 0)
 
     def test_returns_required_keys(self):
         result = score_stats_attribution("<p>Hello world.</p>")
@@ -122,3 +122,20 @@ class TestStatsAttribution(unittest.TestCase):
         result = score_stats_attribution(html)
         self.assertEqual(result["unattributed_count"], 0,
                          f"Expected 'source:' to count as attribution, got: {result}")
+
+    def test_studies_show_counts_as_attribution(self):
+        html = "<p>Studies show 75% of dogs benefit from orthopedic beds.</p>"
+        result = score_stats_attribution(html)
+        self.assertEqual(result["unattributed_count"], 0,
+                         f"'studies show' should count as attribution, got: {result}")
+
+    def test_attribution_does_not_bleed_across_paragraphs(self):
+        html = "<p>75% of dogs suffer joint pain.</p><p>According to AKC, this is common.</p>"
+        result = score_stats_attribution(html)
+        self.assertEqual(result["unattributed_count"], 1,
+                         f"Cross-paragraph bleed: attribution in P2 should not credit stat in P1, got: {result}")
+
+    def test_no_stats_rate_is_one(self):
+        result = score_stats_attribution("<p>Dogs are great pets.</p>")
+        self.assertEqual(result["attribution_rate"], 1.0)
+        self.assertEqual(result["total_stats"], 0)
