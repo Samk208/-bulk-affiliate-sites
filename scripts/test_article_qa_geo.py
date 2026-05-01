@@ -109,3 +109,16 @@ class TestStatsAttribution(unittest.TestCase):
         self.assertIn("unattributed_count", result)
         self.assertIn("attribution_rate", result)
         self.assertIn("issues", result)
+
+    def test_year_citation_counts_as_attribution(self):
+        html = "<p>Studies show 75% success rate (2024) on senior dogs.</p>"
+        result = score_stats_attribution(html)
+        self.assertEqual(result["unattributed_count"], 0,
+                         f"Expected (2024) to count as attribution, got: {result}")
+
+    def test_source_colon_counts_as_attribution(self):
+        # source: must be in the same sentence (no period before it) to be within the 15-word window
+        html = "<p>75% of pet owners report satisfaction, source: APPA 2024 survey.</p>"
+        result = score_stats_attribution(html)
+        self.assertEqual(result["unattributed_count"], 0,
+                         f"Expected 'source:' to count as attribution, got: {result}")

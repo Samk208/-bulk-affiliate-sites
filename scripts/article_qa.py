@@ -278,11 +278,14 @@ def score_passage_self_containment(html: str) -> dict:
     return {"dependent_count": dependent_count, "issues": issues, "density_per_1kw": density}
 
 
-# Attribution phrases that can appear before OR after a stat within a 15-word window.
+# Attribution phrases that can appear before OR after a stat within the same sentence.
+# Note: source: and (\d{4}) are outside the \b...\b group — colons and parens are
+# non-word characters and cannot satisfy a word boundary anchor.
 _ATTRIBUTION_PHRASES = re.compile(
-    r'\b(?:according to|per the|per a|from the|from a|source:|data from|'
+    r'(?:\b(?:according to|per the|per a|from the|from a|data from|'
     r'study by|published in|research by|research from|shows that|found that|'
-    r'reported by|as reported|cited by|\(\d{4}\))\b',
+    r'reported by|as reported|cited by)\b'
+    r'|source:|\(\d{4}\))',
     re.IGNORECASE,
 )
 
