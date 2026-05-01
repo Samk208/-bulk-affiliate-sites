@@ -278,6 +278,100 @@ def score_passage_self_containment(html: str) -> dict:
     return {"dependent_count": dependent_count, "issues": issues, "density_per_1kw": density}
 
 
+# Attribution phrases that can appear before OR after a stat within a 15-word window.
+_ATTRIBUTION_PHRASES = re.compile(
+    r'\b(?:according to|per the|per a|from the|from a|source:|data from|'
+    r'study by|published in|research by|research from|shows that|found that|'
+    r'reported by|as reported|cited by|\(\d{4}\))\b',
+    re.IGNORECASE,
+)
+
+# Stat patterns: percentages, dollar figures, multipliers, counts with units
+_STAT_PATTERNS = [
+    re.compile(r'\d+(?:\.\d+)?%'),           # 28%
+    re.compile(r'\$\d[\d,]*(?:\.\d+)?'),      # $45
+    re.compile(r'\d+x\b'),                    # 3x
+    re.compile(r'\d[\d,]+\s*(?:million|billion|thousand|people|users|dogs|cats)\b', re.I),
+]
+
+
+def score_stats_attribution(html: str) -> dict:
+    """Check whether numeric statistics are accompanied by source attribution.
+
+    For each stat found in the article, scans a ±15-word window (sentence-aware)
+    for an attribution phrase (according to, per the, from the, etc.).
+    Unattributed stats hurt AI citation quality — AI engines prefer to cite
+    evidence that itself cites a primary source.
+
+    Returns:
+        {
+          "total_stats":      int,
+          "attributed_count": int,
+          "unattributed_count": int,
+          "attribution_rate": float,   # 0.0–1.0
+          "issues":           list[str],
+        }
+    """
+    # Split into sentence-level chunks to avoid bleeding context across paragraphs.
+    # Replace block-level tags with sentence terminators, then strip remaining tags.
+    sentence_html = re.sub(r'</(?:p|li|div|h[1-6]|td|th)>', '. ', html, flags=re.IGNORECASE)
+    plain = _TAG_RE.sub(" ", sentence_html)
+    # Split into rough sentences on ". " or ".\n"
+    sentences = re.split(r'\.[\s]+', plain)
+
+    total = 0
+    attributed = 0
+    issues: list[str] = []
+
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+
+        words = sentence.split()
+
+        # Find stat hits within this sentence
+        stat_hits: list[tuple[int, str]] = []
+        for pattern in _STAT_PATTERNS:
+            for m in pattern.finditer(sentence):
+                char_pos = m.start()
+                approx_word_idx = len(sentence[:char_pos].split())
+                stat_hits.append((approx_word_idx, m.group()))
+
+        # De-duplicate hits within 3 words of each other (e.g. "$45 million" matches twice)
+        seen: list[int] = []
+        deduped: list[tuple[int, str]] = []
+        for idx, snippet in sorted(stat_hits):
+            if not any(abs(idx - s) <= 3 for s in seen):
+                deduped.append((idx, snippet))
+                seen.append(idx)
+
+        for word_idx, snippet in deduped:
+            total += 1
+            # Grab ±15-word window within this sentence
+            start = max(0, word_idx - 15)
+            end = min(len(words), word_idx + 16)
+            window = " ".join(words[start:end])
+
+            if _ATTRIBUTION_PHRASES.search(window):
+                attributed += 1
+            else:
+                issues.append(
+                    f"Unattributed stat '{snippet}' — add 'According to [source]' within 15 words"
+                )
+
+    unattributed = total - attributed
+    rate = round(attributed / total, 2) if total else 1.0
+
+    return {
+        "total_stats": total,
+        "attributed_count": attributed,
+        "unattributed_count": unattributed,
+        "attribution_rate": rate,
+        "issues": issues,
+    }
+
+
 # -- E-E-A-T regex patterns (from Multi-Agent Engine eeat_validator_agent.py) --
 
 EEAT_PATTERNS = {
@@ -602,6 +696,13 @@ def check_article(html_path: Path, schema_path: Path, niche_slug: str = "") -> d
             f"(e.g. 'This', 'These', 'As mentioned') — AI extracts these out of context"
         )
 
+    stats_attr = score_stats_attribution(html)
+    if stats_attr["total_stats"] > 0 and stats_attr["attribution_rate"] < 0.5:
+        warnings.append(
+            f"STATS UNATTRIBUTED: {stats_attr['unattributed_count']}/{stats_attr['total_stats']} stats "
+            f"lack a source — attributed stats are cited by AI more often"
+        )
+
     return {
         "slug": slug,
         "word_count": word_count,
@@ -622,6 +723,7 @@ def check_article(html_path: Path, schema_path: Path, niche_slug: str = "") -> d
         "chunk": chunk,
         "algo_authorship": algo,
         "self_contained": self_contained,
+        "stats_attribution": stats_attr,
         "issues": issues,
         "warnings": warnings,
     }
@@ -709,6 +811,11 @@ def run_qa(niche_slug: str):
     self_ref_counts = [r["self_contained"]["dependent_count"] for r in results if r.get("self_contained")]
     if sum(self_ref_counts) > 0:
         print(f"  Self-ref:    {sum(self_ref_counts)} total dependent openers (avg {avg(self_ref_counts):.1f}/article)")
+
+    attr_rates = [r["stats_attribution"]["attribution_rate"] for r in results if r.get("stats_attribution") and r["stats_attribution"]["total_stats"] > 0]
+    if attr_rates:
+        avg_rate = round(sum(attr_rates) / len(attr_rates), 2)
+        print(f"  Stats attr:  {avg_rate:.0%} avg attribution rate (target 50%+)")
 
     print(f"  VERDICT:     {'PASS' if total_issues == 0 else 'NEEDS FIXES'}")
     print(f"{'-'*40}")

@@ -17,9 +17,18 @@ except ImportError as _import_err:
     # Not all 4 functions exist yet — import only what's available.
     # Tests for missing functions will error individually when run.
     from article_qa import score_passage_self_containment  # noqa: F401
-    score_stats_attribution = None
-    validate_quick_answer_box = None
-    check_faq_schema = None
+    try:
+        from article_qa import score_stats_attribution  # noqa: F401
+    except ImportError:
+        score_stats_attribution = None
+    try:
+        from article_qa import validate_quick_answer_box  # noqa: F401
+    except ImportError:
+        validate_quick_answer_box = None
+    try:
+        from article_qa import check_faq_schema  # noqa: F401
+    except ImportError:
+        check_faq_schema = None
 
 
 class TestPassageSelfContainment(unittest.TestCase):
@@ -61,3 +70,42 @@ class TestPassageSelfContainment(unittest.TestCase):
         self.assertIn("dependent_count", result)
         self.assertIn("issues", result)
         self.assertIn("density_per_1kw", result)
+
+
+class TestStatsAttribution(unittest.TestCase):
+
+    def test_unattributed_stat_flagged(self):
+        html = "<p>75% of dogs develop joint issues after age 7.</p>"
+        result = score_stats_attribution(html)
+        self.assertGreater(result["unattributed_count"], 0)
+
+    def test_attributed_stat_not_flagged(self):
+        html = "<p>According to the AKC, 75% of dogs develop joint issues after age 7.</p>"
+        result = score_stats_attribution(html)
+        self.assertEqual(result["unattributed_count"], 0)
+
+    def test_attribution_after_stat_counts(self):
+        # Attribution can come after the stat within 15 words
+        html = "<p>75% success rate, according to a 2024 AKC study on senior dogs.</p>"
+        result = score_stats_attribution(html)
+        self.assertEqual(result["unattributed_count"], 0)
+
+    def test_attribution_rate_calculation(self):
+        html = """
+        <p>According to the ADA, 90% of people don't floss daily.</p>
+        <p>Studies show 45% improvement in retention.</p>
+        <p>Per the WHO, 60% of adults have gum disease.</p>
+        """
+        result = score_stats_attribution(html)
+        # 2 attributed (90%, 60%), 1 unattributed (45%)
+        self.assertEqual(result["total_stats"], 3)
+        self.assertEqual(result["attributed_count"], 2)
+        self.assertEqual(result["unattributed_count"], 1)
+
+    def test_returns_required_keys(self):
+        result = score_stats_attribution("<p>Hello world.</p>")
+        self.assertIn("total_stats", result)
+        self.assertIn("attributed_count", result)
+        self.assertIn("unattributed_count", result)
+        self.assertIn("attribution_rate", result)
+        self.assertIn("issues", result)
