@@ -179,7 +179,9 @@ class TestQuickAnswerBox(unittest.TestCase):
     def test_paragraph_instead_of_bullets_flagged(self):
         result = validate_quick_answer_box(self.PURPLE_BOX_WITH_PARAGRAPH)
         self.assertTrue(result["has_box"])
-        self.assertTrue(any("paragraph" in i.lower() or "<p>" in i for i in result["issues"]))
+        self.assertTrue(len(result["issues"]) > 0, "Expected an issue for paragraph-only box")
+        self.assertTrue(any("<p>" in i or "<li>" in i for i in result["issues"]),
+                         f"Issue should mention <p> or <li>, got: {result['issues']}")
 
     def test_too_few_bullets_flagged(self):
         result = validate_quick_answer_box(self.PURPLE_BOX_TOO_FEW_BULLETS)

@@ -398,7 +398,7 @@ def validate_quick_answer_box(html: str) -> dict:
     if not qa_match:
         return {"has_box": False, "bullet_count": 0, "issues": []}
 
-    box_html = qa_match.group(0)
+    box_html = qa_match.group(1)
     bullet_count = len(_LI_RE.findall(box_html))
     para_count = len(_P_IN_BOX_RE.findall(box_html))
     issues: list[str] = []
