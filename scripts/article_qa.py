@@ -230,7 +230,7 @@ def score_algorithmic_authorship(html: str) -> dict:
 # Dependent openers that kill AI citation when a passage is extracted out of context.
 # GEO/citation research: self-contained passages are cited significantly more often.
 _DEPENDENT_OPENERS = re.compile(
-    r'^\s*(?:This|These|Those|It|They|He|She|As mentioned|As noted|As described|'
+    r'^\s*(?:This|These|Those|They|As mentioned|As noted|As described|'
     r'In the above|In this case|In these cases|For this reason|For these reasons)\b',
     re.IGNORECASE,
 )
@@ -265,8 +265,9 @@ def score_passage_self_containment(html: str) -> dict:
     for p_inner in paragraphs:
         text = _TAG_RE.sub(" ", p_inner).strip()
         total_words += len(text.split())
-        if _DEPENDENT_OPENERS.match(text):
-            opener = text.split()[0] if text.split() else ""
+        m = _DEPENDENT_OPENERS.match(text)
+        if m:
+            opener = m.group(0).strip()
             snippet = " ".join(text.split()[:8])
             issues.append(
                 f"Dependent opener '{opener}' in answer zone — loses meaning when extracted: '{snippet}...'"
@@ -706,7 +707,7 @@ def run_qa(niche_slug: str):
         print(f"  Long paras:  {sum(long_para_counts)} total >60w in answer zones (avg {avg(long_para_counts):.1f}/article)")
 
     self_ref_counts = [r["self_contained"]["dependent_count"] for r in results if r.get("self_contained")]
-    if self_ref_counts:
+    if sum(self_ref_counts) > 0:
         print(f"  Self-ref:    {sum(self_ref_counts)} total dependent openers (avg {avg(self_ref_counts):.1f}/article)")
 
     print(f"  VERDICT:     {'PASS' if total_issues == 0 else 'NEEDS FIXES'}")
