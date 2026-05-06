@@ -8,11 +8,22 @@ import os
 from pathlib import Path
 
 # -- Load .env.cowork for API keys ----------------------------------------
-# Check: VPS path → project root → legacy _global path
-_vps_env = Path("/opt/bulk-affiliate/.env.cowork")
-_project_root_env = Path(__file__).parent.parent / ".env.cowork"
-_global_env = Path(__file__).parent.parent.parent.parent / "_global" / ".env.cowork"
-ENV_FILE = _vps_env if _vps_env.exists() else (_project_root_env if _project_root_env.exists() else _global_env)
+# Check: VPS path → project root → workspace _global (walk up looking for it)
+def _find_env_file() -> Path:
+    vps = Path("/opt/bulk-affiliate/.env.cowork")
+    if vps.exists():
+        return vps
+    project_root = Path(__file__).resolve().parent.parent / ".env.cowork"
+    if project_root.exists():
+        return project_root
+    # Walk up looking for _global/.env.cowork (workspace-level)
+    for ancestor in Path(__file__).resolve().parents:
+        candidate = ancestor / "_global" / ".env.cowork"
+        if candidate.exists():
+            return candidate
+    return Path(__file__).resolve().parent.parent.parent.parent / "_global" / ".env.cowork"
+
+ENV_FILE = _find_env_file()
 if ENV_FILE.exists():
     for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -23,9 +34,28 @@ if ENV_FILE.exists():
                 os.environ[k] = v
 
 # -- Paths ----------------------------------------------------------------
+# Detect if we're running from a git worktree at .claude/worktrees/<name>/
+# and point OUTPUTS_DIR to the parent project's outputs (which is gitignored
+# and shared across worktrees).
 PROJECT_ROOT = Path(__file__).parent.parent
-OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
+
+
+def _resolve_outputs_dir() -> Path:
+    """Pick outputs/ from the worktree's parent project if we're in a worktree."""
+    cwd_marker = PROJECT_ROOT.resolve()
+    # If we're inside .claude/worktrees/<x>/, walk up to find the parent project
+    parts = cwd_marker.parts
+    if ".claude" in parts and "worktrees" in parts:
+        idx = parts.index(".claude")
+        parent_project = Path(*parts[:idx])
+        parent_outputs = parent_project / "outputs"
+        if parent_outputs.exists():
+            return parent_outputs
+    return PROJECT_ROOT / "outputs"
+
+
+OUTPUTS_DIR = _resolve_outputs_dir()
 
 # -- Model Routing --------------------------------------------------------
 # Primary: Kimi K2.5 via OpenRouter ($0.45/$2.20 per 1M tokens)

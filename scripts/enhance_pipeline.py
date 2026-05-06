@@ -307,8 +307,8 @@ def update_used_keywords(niche: str, slug: str, primary_keyword: str,
                          styles_root: Path | None = None) -> bool:
     """Append slug to used-keywords.md (CSV) if not already there."""
     if styles_root is None:
-        # default: scripts/ -> bulk-affiliate-sites/ -> wordpress/ -> styles/
-        styles_root = Path(__file__).parent.parent.parent / "styles"
+        from reference_pack_loader import _default_styles_root
+        styles_root = _default_styles_root()
     used_path = Path(styles_root) / niche / "used-keywords.md"
     if not used_path.exists():
         return False

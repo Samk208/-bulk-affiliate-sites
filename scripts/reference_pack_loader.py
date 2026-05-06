@@ -118,9 +118,27 @@ def parse_forbidden_phrases(forbidden_text: str) -> list[str]:
 # ---- Internals -----------------------------------------------------------
 
 def _default_styles_root() -> Path:
-    here = Path(__file__).parent
-    # scripts/ -> bulk-affiliate-sites/ -> wordpress/ -> styles/
-    return here.parent.parent / "styles"
+    """Resolve the workspace-level styles/ directory.
+
+    Works from both project root and git worktree (which can be deeply nested
+    at .claude/worktrees/<name>/). Walks up looking for a `wordpress` ancestor
+    with a `styles` sibling/child.
+    """
+    here = Path(__file__).resolve().parent
+    # Walk up checking for wordpress/styles
+    for ancestor in [here, *here.parents]:
+        # Case 1: ancestor IS wordpress, styles is child
+        if ancestor.name == "wordpress":
+            styles = ancestor / "styles"
+            if styles.exists():
+                return styles
+        # Case 2: ancestor's parent is wordpress, styles is parent/styles
+        if ancestor.parent.name == "wordpress":
+            styles = ancestor.parent / "styles"
+            if styles.exists():
+                return styles
+    # Fallback: scripts/ -> project/ -> wordpress/ -> styles/
+    return Path(__file__).resolve().parent.parent.parent / "styles"
 
 
 def _read_frontmatter(path: Path, label: str) -> tuple[dict, str]:
