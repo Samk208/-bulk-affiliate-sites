@@ -187,6 +187,206 @@ async def fetch_serp(keyword: str, semaphore: asyncio.Semaphore) -> dict:
     return {"error": "max retries exhausted"}
 
 
+# ---- Top-5 page content parsing (for SERP brief generation) ---------------
+
+def _extract_page_content(item: dict) -> dict:
+    """Parse on_page/content_parsing item into normalized fields.
+
+    Returns: h1, h2_tree, h3_tree, word_count, schema_types,
+    internal_links, external_links.
+    """
+    page = item.get("page_content") or {}
+    h1_list = page.get("h1") or []
+    h1 = h1_list[0] if h1_list else ""
+    h2_tree = page.get("h2", []) or []
+    # DFS returns h3 as flat list across the page
+    h3_flat = page.get("h3", []) or []
+
+    meta = item.get("meta", {}) or {}
+    content_meta = meta.get("content", {}) or {}
+    word_count = content_meta.get("plain_text_word_count") or 0
+    if not word_count:
+        primary = page.get("primary_content") or ""
+        word_count = len(primary.split()) if primary else 0
+
+    schema_types: list[str] = []
+    structured = page.get("structured_data") or []
+    for s in structured:
+        t = s.get("@type") if isinstance(s, dict) else None
+        if t and t not in schema_types:
+            schema_types.append(t)
+
+    int_links = meta.get("internal_links_count") or 0
+    ext_links = meta.get("external_links_count") or 0
+
+    return {
+        "h1": h1,
+        "h2_tree": h2_tree,
+        "h3_tree": h3_flat,
+        "word_count": word_count,
+        "schema_types": schema_types,
+        "internal_links": int_links,
+        "external_links": ext_links,
+    }
+
+
+# Cost: ~$0.000125 per URL via on_page/content_parsing/live
+async def fetch_page_content(url: str, semaphore: asyncio.Semaphore) -> dict:
+    """Fetch parsed content for one URL. Returns dict or {'error': ...}."""
+    payload = [{
+        "url": url,
+        "enable_javascript": True,
+        "enable_browser_rendering": False,
+    }]
+    async with semaphore:
+        async with httpx.AsyncClient(timeout=60) as client:
+            for attempt in range(1, RETRY_ATTEMPTS + 1):
+                try:
+                    resp = await client.post(
+                        f"{DFS_BASE_URL}/on_page/content_parsing/live",
+                        headers=_auth_header(),
+                        json=payload,
+                    )
+                    resp.raise_for_status()
+                    data = resp.json()
+                    if data.get("status_code") != 20000:
+                        if attempt < RETRY_ATTEMPTS:
+                            await asyncio.sleep(RETRY_DELAY * attempt)
+                            continue
+                        return {"error": f"API status {data.get('status_code')}"}
+                    tasks = data.get("tasks") or []
+                    if not tasks:
+                        return {"error": "no tasks in response"}
+                    result_list = tasks[0].get("result") or []
+                    if not result_list:
+                        return {"error": "no result"}
+                    items = result_list[0].get("items") or []
+                    if not items:
+                        return {"error": "no items"}
+                    return _extract_page_content(items[0])
+                except httpx.HTTPStatusError as e:
+                    if attempt < RETRY_ATTEMPTS:
+                        await asyncio.sleep(RETRY_DELAY * attempt)
+                    else:
+                        return {"error": f"HTTP {e.response.status_code}"}
+                except Exception as e:
+                    if attempt < RETRY_ATTEMPTS:
+                        await asyncio.sleep(RETRY_DELAY * attempt)
+                    else:
+                        return {"error": str(e)[:120]}
+    return {"error": "max retries exhausted"}
+
+
+async def fetch_top_pages_content(urls: list[str],
+                                   semaphore: asyncio.Semaphore) -> list[dict]:
+    """Fetch content for up to 5 URLs in parallel."""
+    tasks = [fetch_page_content(u, semaphore) for u in urls[:5]]
+    return await asyncio.gather(*tasks)
+
+
+_SKIP_PARSE_DOMAINS = ("reddit.com", "quora.com", "youtube.com",
+                       "pinterest.com", "wikipedia.org", "amazon.com")
+
+
+def _filter_urls_for_parsing(organic: list[dict],
+                              own_domains: list[str] | None = None) -> list[str]:
+    """Pick top-5 organic URLs, skipping our own + non-competitive sources."""
+    own = set(own_domains or [])
+    urls: list[str] = []
+    for r in organic:
+        url = r.get("url", "")
+        if not url:
+            continue
+        if any(d in url for d in own):
+            continue
+        rank = r.get("position", 999)
+        # Allow non-competitive if rank<=3 (intent signal); skip otherwise
+        if rank > 3 and any(d in url for d in _SKIP_PARSE_DOMAINS):
+            continue
+        urls.append(url)
+        if len(urls) >= 5:
+            break
+    return urls
+
+
+async def generate_briefs_for_niche(niche_slug: str,
+                                     limit: int | None = None) -> dict:
+    """For each title with SERP data, fetch top-5 page content + write brief."""
+    from serp_brief import build_brief_from_data, save_brief
+
+    niche_dir = get_niche_dir(niche_slug)
+    serp_path = niche_dir / "serp-dataforseo.json"
+    if not serp_path.exists():
+        print(f"  No SERP data for {niche_slug}; run without --briefs first")
+        return {"error": "no serp data"}
+
+    serp_data = json.loads(serp_path.read_text(encoding="utf-8"))
+
+    perplexity_path = niche_dir / "serp-research.json"
+    perplexity_data = {}
+    if perplexity_path.exists():
+        perplexity_data = json.loads(perplexity_path.read_text(encoding="utf-8"))
+
+    is_ymyl = niche_slug == "korean-medical-tourism"
+    semaphore = asyncio.Semaphore(MAX_CONCURRENT)
+    written = 0
+    skipped = 0
+    failed = 0
+    cost = 0.0
+
+    slugs = list(serp_data.keys())
+    if limit:
+        slugs = slugs[:limit]
+
+    print(f"\n  Generating SERP briefs for {len(slugs)} articles...")
+    for i, slug in enumerate(slugs, 1):
+        brief_path = niche_dir / "serp-brief" / f"{slug}.json"
+        if brief_path.exists():
+            skipped += 1
+            continue
+
+        entry = serp_data[slug]
+        organic = entry.get("organic", [])
+        urls = _filter_urls_for_parsing(organic)
+        if not urls:
+            failed += 1
+            print(f"  [{i}/{len(slugs)}] {slug} -- FAIL: no eligible URLs")
+            continue
+
+        contents = await fetch_top_pages_content(urls, semaphore)
+        cost += len(urls) * 0.000125
+
+        intent = "informational"
+        intent_source = "default"
+        ppx = perplexity_data.get(slug, {}).get("research", "")
+        ppx_lower = ppx.lower() if ppx else ""
+        if "commercial" in ppx_lower:
+            intent = "commercial"
+            intent_source = "perplexity"
+        elif "transactional" in ppx_lower:
+            intent = "transactional"
+            intent_source = "perplexity"
+
+        brief = build_brief_from_data(
+            query=entry.get("keyword") or entry.get("title", slug),
+            intent=intent,
+            intent_source=intent_source,
+            serp_data=entry,
+            page_contents=contents,
+            is_ymyl=is_ymyl,
+        )
+        save_brief(niche_slug, slug, brief)
+        written += 1
+        print(f"  [{i}/{len(slugs)}] {slug} -- OK "
+              f"({brief['target_word_count']}w target, "
+              f"{len(brief['top_results'])} top results)")
+
+    print(f"\n  Briefs written: {written}, skipped: {skipped}, failed: {failed}")
+    print(f"  Cost: ${cost:.4f}")
+    return {"written": written, "skipped": skipped,
+            "failed": failed, "cost": cost}
+
+
 async def run_niche(niche_slug: str, limit: int | None = None):
     """Fetch SERP data for all titles in a niche."""
     if not DFS_LOGIN or not DFS_PASSWORD:
@@ -290,8 +490,14 @@ async def run_niche(niche_slug: str, limit: int | None = None):
 
 async def main():
     if len(sys.argv) < 2:
-        print("Usage: python scripts/serp_dataforseo.py <niche-slug> [--limit N]")
-        print("       python scripts/serp_dataforseo.py --all [--limit N]")
+        print("Usage:")
+        print("  python scripts/serp_dataforseo.py <niche-slug> [--limit N]")
+        print("  python scripts/serp_dataforseo.py <niche-slug> --briefs [--limit N]")
+        print("  python scripts/serp_dataforseo.py --all [--briefs] [--limit N]")
+        print("")
+        print("Without --briefs: fetches live SERP data via /serp/google/organic/live")
+        print("With --briefs: fetches top-5 page content via /on_page/content_parsing")
+        print("              and writes normalized SERP briefs (requires SERP data first)")
         sys.exit(1)
 
     limit = None
@@ -300,13 +506,17 @@ async def main():
         if idx + 1 < len(sys.argv):
             limit = int(sys.argv[idx + 1])
 
+    do_briefs = "--briefs" in sys.argv
     niches = ALL_NICHES if sys.argv[1] == "--all" else [sys.argv[1]]
 
     for niche in niches:
         if not get_niche_dir(niche).exists():
             print(f"SKIP: {niche}")
             continue
-        await run_niche(niche, limit)
+        if do_briefs:
+            await generate_briefs_for_niche(niche, limit)
+        else:
+            await run_niche(niche, limit)
 
     print("\nAll done.")
 
