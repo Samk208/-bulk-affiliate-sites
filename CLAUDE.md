@@ -2,10 +2,12 @@
 
 ## Session Start Protocol
 1. Read this file first
-2. **Read `/sessions/zen-elegant-pascal/mnt/wordpress/MASTER-SCHEDULE.md`** — full schedule of all 16 tasks, all mounted folders, and session restart checklist
+2. **Read `HANDOVER-2026-05-04.md`** — current state, article counts, next steps (THIS IS THE ONE TO READ)
 3. Read `PILLAR-SELECTION.md` for content tiering strategy
-3. Read `HANDOVER-2026-04-12.md` for current state and next actions
-4. Check `outputs/generation-progress.json` for per-niche status
+4. Read `SITE-LAUNCH-PLAN.md` if working on WordPress / site launch
+5. Read `IMAGE-GENERATION-PLAN.md` if working on image generation
+
+> Previous handovers (stale, for history only): HANDOVER-2026-04-13.md, HANDOVER-2026-04-12.md, HANDOVER-2026-04-11.md
 
 ---
 
@@ -210,3 +212,35 @@ outputs/<niche>/
 Title{outline_focus=buyer persona max 120 chars}{slug=url-slug-max-6-words}{category=Category}
 ```
 Categories: Best Products | Reviews | Buying Guides | Comparisons | How-To Guides | Tips & Care
+
+---
+
+## Stack
+- Python 3.13 (system-installed via scoop), no virtual env
+- No `requirements.txt` / `pyproject.toml` — deps installed globally
+- Key libs: `pytest`, `pyyaml`, `requests`, `anthropic`, `openai`
+- LLM access: OpenRouter (Kimi K2.5 primary), Anthropic (Sonnet fallback), Perplexity (research/verification)
+- SERP data: DataForSEO (live + on_page/content_parsing endpoints)
+- WordPress target: LocalWP at `http://localhost:10040` (dev), VPS at `/opt/bulk-affiliate/` (prod)
+
+## Commands
+- Test: `python -m pytest tests/ -q`
+- Single test file: `python -m pytest tests/test_<name>.py -v`
+- QA on a niche: `python scripts/article_qa.py <niche>`
+- Enhance pipeline: `python scripts/enhance_pipeline.py <niche>` (regression-guarded; writes `.bak`)
+- Pilot orchestrator: `python scripts/retrofit_pilot.py <niche>` (full E2E with success-criteria check)
+- Reference packs: `python scripts/reference_pack_builder.py <niche> --validate`
+
+## Verification
+Before declaring work done on pipeline scripts:
+1. `python -m pytest tests/ -q` — full suite must pass
+2. If touching enhancer / QA / brief / packs: dry-run on `dog-comfort` first (`--dry-run` flag where supported)
+3. If touching cost-incurring code (LLM calls, DataForSEO): smoke-test with `--limit 1` before any batch run
+4. Briefs/outputs must land in `<project>/outputs/`, NOT `<worktree>/outputs/` — see worktree-aware path pattern in `scripts/config.py::_resolve_outputs_dir`
+
+## Don't touch
+- `outputs/` — generated content, gitignored, shared across worktrees via worktree-aware paths
+- `outputs/**/*.bak` — pre-enhancement originals kept by regression guard; the enhancer needs them to roll back on score regressions
+- `.env.cowork`, `.env.wp` — credentials (never commit, never echo)
+- `.claude/settings.local.json` — 600+ organic allow rules; don't try to clean it up without backing up first
+- `outputs/**/progress.json` and `cowork-queue.json` — runtime state, machine-specific

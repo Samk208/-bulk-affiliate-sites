@@ -60,7 +60,10 @@ venv/
 .vscode/
 .idea/
 .qoder/
-.claude/
+.claude/*
+# Track project rules and skills (per-project Claude scaffolding)
+!.claude/rules/
+!.claude/skills/
 
 # ---- OS ----
 Thumbs.db
