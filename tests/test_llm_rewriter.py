@@ -169,3 +169,27 @@ def test_apply_llm_rewrite_strips_leftover_marker_from_rewrite():
     new_html, rep = apply_llm_rewrite(html, [], llm_call=fake_llm)
     assert "[unverified]" not in new_html
     assert "Cautious rewrite without numbers." in new_html
+
+
+def test_prompt_treats_source_citations_as_suspect():
+    """The system prompt must instruct the LLM to NOT trust source citations.
+
+    Reason: in the 2026-05-07 pilot, sentences like
+        'AVMA notes that brachycephalic dogs account for over 20%...'
+    were left unchanged because the LLM trusted the AVMA wrapper. The fix is
+    explicit: any number not in the verified library is suspect, regardless
+    of attribution.
+    """
+    library = [{"claim": "x", "value": "y", "source": "z", "year": 2024}]
+    sentences = ["AVMA notes that 20% of dogs do X. [unverified]"]
+    msgs = make_rewrite_messages(sentences, library)
+    sys_prompt = msgs[0]["content"].lower()
+    # Must mention treating citations / sources as suspect or unreliable
+    assert (
+        "citation" in sys_prompt or "source" in sys_prompt
+    ), "prompt should reference citations/sources"
+    # Must explicitly not-trust attribution wrappers
+    assert any(token in sys_prompt for token in [
+        "do not trust", "do not assume", "treat all citations as suspect",
+        "regardless of attribution", "even if attributed",
+    ]), "prompt should explicitly distrust attribution wrappers"
