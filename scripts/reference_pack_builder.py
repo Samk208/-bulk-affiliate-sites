@@ -160,6 +160,19 @@ def validate_pack(niche: str) -> bool:
 
 # ---- Verify stats via Perplexity ----------------------------------------
 
+def should_accept_verification(result: dict) -> bool:
+    """Decide whether a Perplexity verification result accepts the stat.
+
+    Accept when `verified` is true. `exact_match` is informational only —
+    Perplexity often marks a claim verified=true with exact_match=false when
+    the substance is supported by multiple sources but no single source uses
+    the same wording (e.g. ranges that span the claim, paraphrased values).
+    Requiring exact_match wastes valid claims (3 of 18 rejections in the
+    2026-05-07 dog-comfort pilot were verified=true / exact_match=false).
+    """
+    return bool(result.get("verified"))
+
+
 def verify_stats(niche: str) -> None:
     """For each stat in stats.md, query Perplexity to verify the claim."""
     pack = load_pack(niche, styles_root=STYLES_ROOT)
@@ -191,12 +204,14 @@ def verify_stats(niche: str) -> None:
             '"notes": "..."}\n'
         )
         result = _ask_perplexity(prompt)
-        if result.get("verified") and result.get("exact_match"):
+        if should_accept_verification(result):
             stat["verified_at"] = today_iso
             if result.get("source_url"):
                 stat["url"] = result["source_url"]
+            stat["exact_match"] = bool(result.get("exact_match"))
             verified.append(stat)
-            print(f"  [{i}/{len(pack.stats)}] OK '{claim[:50]}'")
+            tag = "OK" if result.get("exact_match") else "OK*"  # * = supported, not exact
+            print(f"  [{i}/{len(pack.stats)}] {tag} '{claim[:50]}'")
         else:
             rejected.append({"stat": stat, "perplexity_result": result})
             print(f"  [{i}/{len(pack.stats)}] REJECTED '{claim[:50]}': "

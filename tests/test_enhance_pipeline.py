@@ -115,7 +115,7 @@ def test_detect_post_type_how_to():
 
 
 def test_apply_stat_substitution_processes_numeric_sentence():
-    """Any number-bearing sentence gets substituted/needs-source/unverified."""
+    """A citable-shape sentence gets substituted/needs-source/unverified."""
     library = [{
         "claim": "Korean cosmetics export volume reached",
         "value": "$8.4 billion",
@@ -123,7 +123,8 @@ def test_apply_stat_substitution_processes_numeric_sentence():
         "source": "Korea Customs Service",
         "url": "https://x", "verified_at": "2026-05-06",
     }]
-    html = "<p>Korean cosmetics exports reached $8.4 billion last year.</p>"
+    # Citable shape — has "according to" cite marker
+    html = "<p>According to industry data, Korean cosmetics exports reached $8.4 billion last year.</p>"
     new_html, rep = apply_stat_substitution(html, library)
     total = rep["substitutions"] + rep["needs_source"] + rep["unverified"]
     assert total >= 1, f"Expected at least 1 action, got {rep}"
@@ -141,8 +142,8 @@ def test_apply_stat_substitution_high_match_substitutes():
         "source": "Korea Customs Service",
         "url": "https://x", "verified_at": "2026-05-06",
     }]
-    # Near-identical wording for high Jaccard score
-    html = "<p>Korean cosmetics exports reached $8.4 billion last year.</p>"
+    # Citable shape (cite marker) + near-identical wording for high containment score
+    html = "<p>According to research, Korean cosmetics exports reached $8.4 billion last year.</p>"
     new_html, rep = apply_stat_substitution(html, library)
     total = rep["substitutions"] + rep["needs_source"] + rep["unverified"]
     assert total >= 1

@@ -32,7 +32,7 @@ from reference_pack_loader import (
 )
 from voice_mode import determine_voice_mode
 from serp_brief import load_brief, get_word_count_target
-from stat_substitution import find_number_bearing_sentences, match_stat_to_library
+from stat_substitution import find_citable_claim_sentences, match_stat_to_library
 from visual_elements import count_visual_elements, visual_regressions, ElementCounts
 
 
@@ -79,9 +79,14 @@ def detect_post_type(article_meta: dict, slug: str) -> str:
 # ---- Step 4: stat substitution ---------------------------------------------
 
 def apply_stat_substitution(html: str, library: list[dict]) -> tuple[str, dict]:
-    """Substitute fabricated stats with vetted entries from stats.md."""
+    """Substitute fabricated stats with vetted entries from stats.md.
+
+    Only sentences that look like attributable factual claims (find_citable_claim_sentences)
+    are processed. Methodology, product specs, and plain recommendations are
+    left alone — they don't deserve a [unverified] flag.
+    """
     plain = _TAG_RE.sub(" ", html)
-    sentences = find_number_bearing_sentences(plain)
+    sentences = find_citable_claim_sentences(plain)
     substitutions = needs_source = unverified = 0
 
     if not library:
