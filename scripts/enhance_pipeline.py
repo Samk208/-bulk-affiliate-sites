@@ -33,6 +33,7 @@ from reference_pack_loader import (
 from voice_mode import determine_voice_mode
 from serp_brief import load_brief, get_word_count_target
 from stat_substitution import find_citable_claim_sentences, match_stat_to_library
+from llm_rewriter import apply_llm_rewrite
 from visual_elements import count_visual_elements, visual_regressions, ElementCounts
 
 
@@ -361,6 +362,13 @@ def run_pipeline(html: str, niche: str, slug: str,
     # 4. Substitute fabricated stats
     html, stat_rep = apply_stat_substitution(html, pack.stats)
     report["steps"].append({"step": "stats", **stat_rep})
+
+    # 4b. LLM rewrite [unverified]-flagged sentences (Phase γ)
+    #     Consumes markers added by step 4. Each flagged sentence is either
+    #     rewritten to use a verified stat, paraphrased to non-numeric, or
+    #     removed entirely. Never invents new numbers.
+    html, rewrite_rep = apply_llm_rewrite(html, pack.stats)
+    report["steps"].append({"step": "llm_rewrite", **rewrite_rep})
 
     # 5. Inject stories
     html, story_rep = inject_stories(html, pack.stories, voice_mode, post_type)
