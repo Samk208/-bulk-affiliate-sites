@@ -1,5 +1,7 @@
 """Tests for SERP brief schema validator + builder."""
 
+import json
+
 import pytest
 
 from serp_brief import (
@@ -7,6 +9,8 @@ from serp_brief import (
     BriefValidationError,
     build_brief_from_data,
     get_word_count_target,
+    load_brief,
+    save_brief,
     GLOBAL_FLOOR,
     GLOBAL_CEILING,
 )
@@ -207,3 +211,61 @@ def test_get_word_count_target_unknown_niche_falls_back():
     target, mn, mx = get_word_count_target("not-a-real-niche", None)
     assert mn >= GLOBAL_FLOOR
     assert mx <= GLOBAL_CEILING
+
+
+# ---- Save / Load round-trip with explicit outputs_dir -------------------
+
+def test_save_and_load_brief_roundtrip(tmp_path):
+    """Briefs land where outputs_dir says — not under scripts/.."""
+    brief = _minimal_valid_brief()
+    out = save_brief(
+        niche="dog-comfort", slug="best-bed-for-dog", brief=brief,
+        outputs_dir=tmp_path,
+    )
+    assert out == tmp_path / "dog-comfort" / "serp-brief" / "best-bed-for-dog.json"
+    assert out.exists()
+
+    loaded = load_brief(
+        niche="dog-comfort", slug="best-bed-for-dog",
+        outputs_dir=tmp_path,
+    )
+    assert loaded == brief
+
+
+def test_load_brief_returns_none_when_missing(tmp_path):
+    assert load_brief("dog-comfort", "no-such-slug", outputs_dir=tmp_path) is None
+
+
+def test_save_brief_rejects_invalid(tmp_path):
+    brief = _minimal_valid_brief()
+    brief["target_word_count"] = -1
+    with pytest.raises(BriefValidationError):
+        save_brief("dog-comfort", "x", brief, outputs_dir=tmp_path)
+    # File should not have been created
+    assert not (tmp_path / "dog-comfort" / "serp-brief" / "x.json").exists()
+
+
+def test_save_brief_with_project_root_legacy_arg(tmp_path):
+    """Backwards-compat: project_root arg still works."""
+    brief = _minimal_valid_brief()
+    out = save_brief(
+        niche="dog-comfort", slug="legacy-arg", brief=brief,
+        project_root=tmp_path,
+    )
+    assert out == tmp_path / "outputs" / "dog-comfort" / "serp-brief" / "legacy-arg.json"
+    assert out.exists()
+
+
+def test_save_brief_default_outputs_dir_uses_config(monkeypatch, tmp_path):
+    """Without args, save_brief uses config.OUTPUTS_DIR (worktree-aware)."""
+    import config
+    monkeypatch.setattr(config, "OUTPUTS_DIR", tmp_path)
+    # Also patch the import-cached binding inside serp_brief if present
+    import serp_brief as sb
+    # _default_outputs_dir does a fresh `from config import OUTPUTS_DIR`,
+    # so monkeypatching config.OUTPUTS_DIR is sufficient.
+    brief = _minimal_valid_brief()
+    out = sb.save_brief("dog-comfort", "from-config", brief)
+    assert tmp_path in out.parents
+    loaded = sb.load_brief("dog-comfort", "from-config")
+    assert loaded == brief

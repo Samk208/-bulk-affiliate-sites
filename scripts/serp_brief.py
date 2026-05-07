@@ -102,24 +102,44 @@ def validate_brief(brief: dict[str, Any]) -> None:
 
 # ---- Load / Save ---------------------------------------------------------
 
+def _default_outputs_dir() -> Path:
+    """Use config.OUTPUTS_DIR (worktree-aware). Fallback to <scripts>/../outputs."""
+    try:
+        from config import OUTPUTS_DIR
+        return OUTPUTS_DIR
+    except Exception:
+        return Path(__file__).resolve().parent.parent / "outputs"
+
+
 def load_brief(niche: str, slug: str,
+               outputs_dir: Path | None = None,
                project_root: Path | None = None) -> dict | None:
-    """Load brief for an article. Returns None if missing."""
-    if project_root is None:
-        project_root = Path(__file__).parent.parent
-    brief_path = project_root / "outputs" / niche / "serp-brief" / f"{slug}.json"
+    """Load brief for an article. Returns None if missing.
+
+    `outputs_dir` is the preferred argument. `project_root` kept for backwards
+    compatibility — when given, brief resolves under `<project_root>/outputs`.
+    Default uses config.OUTPUTS_DIR which detects worktrees and points at the
+    parent project's shared outputs/ directory.
+    """
+    base = _resolve_base(outputs_dir, project_root)
+    brief_path = base / niche / "serp-brief" / f"{slug}.json"
     if not brief_path.exists():
         return None
     return json.loads(brief_path.read_text(encoding="utf-8"))
 
 
 def save_brief(niche: str, slug: str, brief: dict,
+               outputs_dir: Path | None = None,
                project_root: Path | None = None) -> Path:
-    """Save brief, validating first."""
+    """Save brief, validating first.
+
+    See `load_brief` for arg semantics. Default uses config.OUTPUTS_DIR which
+    is worktree-aware so briefs land in the parent project's outputs/, not the
+    worktree's.
+    """
     validate_brief(brief)
-    if project_root is None:
-        project_root = Path(__file__).parent.parent
-    brief_dir = project_root / "outputs" / niche / "serp-brief"
+    base = _resolve_base(outputs_dir, project_root)
+    brief_dir = base / niche / "serp-brief"
     brief_dir.mkdir(parents=True, exist_ok=True)
     brief_path = brief_dir / f"{slug}.json"
     brief_path.write_text(
@@ -127,6 +147,14 @@ def save_brief(niche: str, slug: str, brief: dict,
         encoding="utf-8",
     )
     return brief_path
+
+
+def _resolve_base(outputs_dir: Path | None, project_root: Path | None) -> Path:
+    if outputs_dir is not None:
+        return Path(outputs_dir)
+    if project_root is not None:
+        return Path(project_root) / "outputs"
+    return _default_outputs_dir()
 
 
 # ---- Builder -------------------------------------------------------------
