@@ -1,7 +1,7 @@
 """
 config.py — Shared configuration for the article generation pipeline.
 
-Model routing: Kimi K2.5 via OpenRouter (primary), Sonnet fallback.
+Model routing: DeepSeek V4 Flash via OpenRouter (primary), Sonnet fallback.
 """
 
 import os
@@ -28,7 +28,7 @@ OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
 # -- Model Routing --------------------------------------------------------
-# Primary: Kimi K2.5 via OpenRouter ($0.45/$2.20 per 1M tokens)
+# Primary: DeepSeek V4 Flash via OpenRouter (~$0.14/$0.28 per 1M tokens)
 # Fallback: Claude Sonnet via Anthropic ($3/$15 per 1M tokens)
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
@@ -41,9 +41,9 @@ PERPLEXITY_BASE_URL = "https://api.perplexity.ai"
 DATAFORSEO_LOGIN    = os.environ.get("DATAFORSEO_LOGIN", "")
 DATAFORSEO_PASSWORD = os.environ.get("DATAFORSEO_PASSWORD", "")
 
-PRIMARY_MODEL = "moonshotai/kimi-k2.5"       # All niches
-FALLBACK_MODEL = "claude-sonnet-4-6"          # Only if Kimi fails
-PRIMARY_MAX_TOKENS = 8192                     # Long-form with visuals (Kimi supports 128K)
+PRIMARY_MODEL = "deepseek/deepseek-v4-flash"  # All niches — switched from Kimi K2.5 (2026-05-02)
+FALLBACK_MODEL = "claude-sonnet-4-6"          # Only if DeepSeek fails
+PRIMARY_MAX_TOKENS = 8192                     # Long-form with visuals
 FALLBACK_MAX_TOKENS = 4096
 
 # -- Article Generation ---------------------------------------------------

@@ -73,30 +73,42 @@ def save_progress(articles_dir: Path, progress: dict):
     progress_path.write_text(json.dumps(progress, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-async def call_openrouter(user_prompt: str) -> tuple[str, int, int, str]:
-    """Call Kimi K2.5 via OpenRouter (OpenAI-compatible API). Returns (content, in_tokens, out_tokens, model_used)."""
-    import openai
-
-    client = openai.AsyncOpenAI(
-        base_url=OPENROUTER_BASE_URL,
-        api_key=OPENROUTER_API_KEY,
-    )
-    response = await client.chat.completions.create(
-        model=PRIMARY_MODEL,
-        max_tokens=PRIMARY_MAX_TOKENS,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt},
-        ],
-        extra_headers={
+def _openrouter_post(payload: dict) -> dict:
+    """Synchronous OpenRouter POST using stdlib urllib (no third-party deps)."""
+    import json as _json
+    import urllib.request
+    data = _json.dumps(payload).encode()
+    req = urllib.request.Request(
+        f"{OPENROUTER_BASE_URL}/chat/completions",
+        data=data,
+        headers={
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
             "HTTP-Referer": "https://claudecowork.local",
             "X-Title": "Bulk Affiliate Article Generator",
         },
+        method="POST",
     )
-    content = response.choices[0].message.content
-    in_tok = response.usage.prompt_tokens if response.usage else 0
-    out_tok = response.usage.completion_tokens if response.usage else 0
-    model_used = response.model or PRIMARY_MODEL
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        return _json.loads(resp.read())
+
+
+async def call_openrouter(user_prompt: str) -> tuple[str, int, int, str]:
+    """Call DeepSeek V4 Flash via OpenRouter. Returns (content, in_tokens, out_tokens, model_used)."""
+    payload = {
+        "model": PRIMARY_MODEL,
+        "max_tokens": PRIMARY_MAX_TOKENS,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+    }
+    data = await asyncio.to_thread(_openrouter_post, payload)
+    content = data["choices"][0]["message"]["content"]
+    usage = data.get("usage", {})
+    in_tok = usage.get("prompt_tokens", 0)
+    out_tok = usage.get("completion_tokens", 0)
+    model_used = data.get("model", PRIMARY_MODEL)
     return content, in_tok, out_tok, model_used
 
 
@@ -138,7 +150,7 @@ async def generate_article(
         html_content = None
         model_used = "none"
 
-        # Try primary model (Kimi K2.5 via OpenRouter)
+        # Try primary model (DeepSeek V4 Flash via OpenRouter)
         for attempt in range(1, RETRY_ATTEMPTS + 1):
             try:
                 html_content, in_tok, out_tok, model_used = await call_openrouter(user_prompt)
@@ -147,14 +159,14 @@ async def generate_article(
                 err_str = str(e)
                 if attempt < RETRY_ATTEMPTS:
                     wait = RETRY_DELAY * attempt
-                    print(f"    Kimi retry {attempt} on {slug}: {err_str[:80]}")
+                    print(f"    DeepSeek retry {attempt} on {slug}: {err_str[:80]}")
                     await asyncio.sleep(wait)
                 else:
-                    print(f"    Kimi failed on {slug}, trying Sonnet fallback...")
+                    print(f"    DeepSeek failed on {slug}, queuing for Cowork fallback...")
 
-        # If Kimi failed entirely, mark for Cowork fallback (zero cost)
+        # If DeepSeek failed entirely, mark for Cowork fallback (zero cost)
         if html_content is None:
-            return {"slug": slug, "status": "needs_cowork", "error": "Kimi failed, queued for Cowork"}
+            return {"slug": slug, "status": "needs_cowork", "error": "DeepSeek failed, queued for Cowork"}
 
         # Check for truncation — if under 800 words, mark for Cowork redo
         if len(html_content.split()) < 800:
@@ -390,13 +402,13 @@ async def run_niche(niche_slug: str, limit: int | None = None):
         cowork_path.write_text(json.dumps({
             "niche": niche_slug,
             "slugs": cowork_queue,
-            "reason": "Kimi K2.5 failed or truncated -- Cowork generates these at $0 cost",
+            "reason": "DeepSeek V4 Flash failed or truncated -- Cowork generates these at $0 cost",
         }, indent=2), encoding="utf-8")
 
     elapsed = time.time() - start_time
     print(f"\n{'-'*40}")
     print(f"  RESULTS: {niche_name}")
-    print(f"  Success:     {success} (Kimi)")
+    print(f"  Success:     {success} (DeepSeek V4 Flash)")
     print(f"  Cowork queue: {needs_cowork} (free fallback)")
     print(f"  Skipped:     {skipped}")
     print(f"  Failed:      {failed}")
@@ -404,10 +416,10 @@ async def run_niche(niche_slug: str, limit: int | None = None):
     print(f"  Tokens:      {total_input:,} in / {total_output:,} out")
     print(f"  Models:      {models_used}")
 
-    # Cost estimate (Kimi K2.5 pricing only -- Cowork fallback is $0)
-    kimi_in = total_input * 0.45 / 1_000_000
-    kimi_out = total_output * 2.20 / 1_000_000
-    print(f"  Est cost:    ${kimi_in + kimi_out:.3f} (Kimi only -- Cowork = $0)")
+    # Cost estimate (DeepSeek V4 Flash via OpenRouter -- Cowork fallback is $0)
+    ds_in = total_input * 0.14 / 1_000_000
+    ds_out = total_output * 0.28 / 1_000_000
+    print(f"  Est cost:    ${ds_in + ds_out:.4f} (DeepSeek V4 Flash -- Cowork = $0)")
     if cowork_queue:
         print(f"  Cowork TODO: {len(cowork_queue)} articles saved to cowork-queue.json")
     print(f"{'-'*40}")
