@@ -32,10 +32,10 @@ All title files DONE. Article generation pipeline built and tested.
 - **Phase B (ongoing):** Remaining 7-10 added over first 4-6 weeks
 - See `PILLAR-SELECTION.md` for exact articles per niche
 
-### Tier 2 — Supporting Posts (Perplexity Sonar + Kimi K2.5)
+### Tier 2 — Supporting Posts (Perplexity Sonar + DeepSeek V4 Flash)
 - All remaining posts (~865-935 total)
-- Perplexity Sonar research for factual grounding (needs PERPLEXITY_API_KEY in .env.cowork)
-- Kimi K2.5 generation via OpenRouter ($0.015/article)
+- Perplexity Sonar research for factual grounding (routed via OpenRouter — single API key)
+- DeepSeek V4 Flash generation via OpenRouter (~$0.01/article)
 - 1,500-2,000 words
 
 ### Total estimated cost: ~$22-23 for all 1,145 articles
@@ -77,7 +77,7 @@ All title files DONE. Article generation pipeline built and tested.
 - Use 2-3 Pro Tips, 1 Warning, 1-2 expert quotes, 1-2 tables per article
 - All visual HTML is inline-styled for WordPress compatibility
 - **IMPORTANT**: Callouts MUST be wrapped in styled `<div>` containers, not bare `<strong>` tags
-- Kimi K2.5 often outputs bare callouts — `article_enhancer.py` fixes this automatically
+- Both Kimi K2.5 (legacy) and DeepSeek V4 Flash (current) often output bare callouts — `article_enhancer.py` fixes this automatically
 - After generation, ALWAYS run `article_enhancer.py` then `article_qa.py` to verify
 
 ### 6. E-E-A-T Signals
@@ -85,8 +85,8 @@ All title files DONE. Article generation pipeline built and tested.
 - Expertise: specific measurements, temperatures, ingredients, percentages
 - Authority: expert quotes (real people only), cite organizations, "According to..."
 - Trust: mention downsides honestly, "The one thing I didn't love...", "Last updated" date
-- **Kimi K2.5 gap**: Articles typically score 5.0/10 E-E-A-T without enhancement
-- **After enhancement**: ~5.9/10. For 7.0+ target, worst articles may need LLM rewrite pass
+- **Generator gap**: Articles typically score 5.0/10 E-E-A-T without enhancement (true for both Kimi-era and DeepSeek-era output)
+- **After enhancement**: ~5.9/10. For 7.0+ target, worst articles may need LLM rewrite pass (γ pipeline)
 - `article_enhancer.py` adds experience + authority + expert quote + trust signals at $0
 
 ### 7. GEO Optimization
@@ -116,16 +116,16 @@ delve, tapestry, landscape, crucial, leverage, utilize, cutting-edge, game-chang
 ### Tier 2 — Supporting Posts (automated pipeline)
 ```bash
 python scripts/serp_researcher.py <niche>          # Step 1: Perplexity Sonar research
-python scripts/article_generator.py <niche>         # Step 2: Kimi K2.5 generation
-python scripts/html_cleanup.py <niche>              # Step 3: Fix Kimi formatting
+python scripts/article_generator.py <niche>         # Step 2: DeepSeek V4 Flash generation
+python scripts/html_cleanup.py <niche>              # Step 3: Fix generator formatting
 python scripts/article_enhancer.py <niche>          # Step 4: Add E-E-A-T + visual elements (0 API cost)
 python scripts/article_qa.py <niche>                # Step 5: Validate quality
 python scripts/wp_importer.py <niche>               # Step 6: WXR XML with drip schedule
 ```
 
 ### Post-Generation Enhancement (MANDATORY — run after every batch)
-The `article_enhancer.py` script fixes known Kimi K2.5 output gaps at zero LLM cost:
-- **Wraps bare callouts** in styled `<div>` containers (Kimi outputs `<strong>Pro Tip:` without the background div)
+The `article_enhancer.py` script fixes known generator output gaps at zero LLM cost:
+- **Wraps bare callouts** in styled `<div>` containers (generator outputs `<strong>Pro Tip:` without the background div)
 - **Adds experience signals** ("After testing...", "In my experience...") — 2 per article
 - **Adds authority citations** ("According to...", "Research published in...") where claims lack sourcing
 - **Adds expert quotes** (styled `<blockquote>` with name/credentials) if article has none
@@ -140,11 +140,12 @@ python scripts/article_enhancer.py <niche> --dry-run # Preview without saving
 python scripts/article_enhancer.py --all             # All niches
 ```
 
-### Known Kimi K2.5 Quality Gaps (what the enhancer fixes)
-1. **Callout divs missing**: Kimi generates `<strong style="color:...">Pro Tip:</strong>` but not the styled `<div>` wrapper → QA can't detect them, WordPress renders them as plain text
-2. **Experience signals absent**: Kimi writes in third-person by default, missing first-person "I tested" signals that E-E-A-T scoring requires
-3. **Authority citations sparse**: Kimi makes claims without "according to" / research citations
-4. **Expert quotes rare**: Most articles have 0 `<blockquote>` expert quotes
+### Known Generator Quality Gaps (what the enhancer fixes)
+Originally observed with Kimi K2.5; same patterns persist with DeepSeek V4 Flash. Enhancer addresses both.
+1. **Callout divs missing**: generator produces `<strong style="color:...">Pro Tip:</strong>` but not the styled `<div>` wrapper → QA can't detect them, WordPress renders them as plain text
+2. **Experience signals absent**: third-person by default, missing first-person "I tested" signals that E-E-A-T scoring requires
+3. **Authority citations sparse**: claims made without "according to" / research citations
+4. **Expert quotes rare**: most articles have 0 `<blockquote>` expert quotes
 5. **Update date missing**: ~30% of articles lack "Last updated" signal
 
 ### Utilities
@@ -193,9 +194,9 @@ outputs/<niche>/
 
 ## Technical Notes
 - DataForSEO: `labs_google_keyword_suggestions`, location=2840, en, limit=200
-- OpenRouter API key in `_global/.env.cowork` (OPENROUTER_API_KEY)
-- Perplexity API key in `.env.cowork` (PERPLEXITY_API_KEY) — verified working 2026-04-12
-- Kimi K2.5 model: `moonshotai/kimi-k2.5` via OpenRouter
+- OpenRouter API key in `_global/.env.cowork` (OPENROUTER_API_KEY) — single key for generation + Sonar
+- Direct Perplexity API key (`PERPLEXITY_API_KEY`) no longer required; Sonar routed via OpenRouter as `perplexity/sonar`
+- Generation model: `deepseek/deepseek-v4-flash` via OpenRouter (~$0.14/$0.28 per 1M tokens; switched from `moonshotai/kimi-k2.5` 2026-05-02)
 - Entity library: `scripts/entity_library.py` — Wikipedia sameAs for all 14 niches
 - All visual HTML uses inline styles (no external CSS dependency)
 
@@ -219,7 +220,7 @@ Categories: Best Products | Reviews | Buying Guides | Comparisons | How-To Guide
 - Python 3.13 (system-installed via scoop), no virtual env
 - No `requirements.txt` / `pyproject.toml` — deps installed globally
 - Key libs: `pytest`, `pyyaml`, `requests`, `anthropic`, `openai`
-- LLM access: OpenRouter (Kimi K2.5 primary), Anthropic (Sonnet fallback), Perplexity (research/verification)
+- LLM access: OpenRouter (DeepSeek V4 Flash primary, Perplexity Sonar for research), Anthropic (Sonnet fallback)
 - SERP data: DataForSEO (live + on_page/content_parsing endpoints)
 - WordPress target: LocalWP at `http://localhost:10040` (dev), VPS at `/opt/bulk-affiliate/` (prod)
 
